@@ -1,0 +1,866 @@
+{% extends 'clientes/base.html' %}
+
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Historial de {{ cliente.nombre }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-user"></i> Historial del Cliente: {{ cliente.nombre }}</h2>
+    <div>
+
+        <button type="button" class="btn btn-outline-secondary me-2" onclick="window.history.back();">
+            <i class="fas fa-arrow-left"></i> Volver
+        </button>
+
+        <a href="{% url 'clientes:cliente_list' %}" class="btn btn-secondary me-2">
+            <i class="fas fa-list"></i> Todos
+        </a>
+        <a href="{% url 'clientes:cliente_update' cliente.pk %}" class="btn btn-warning me-2">
+            <i class="fas fa-edit"></i> Editar
+        </a>
+        <a href="{% url 'documentos:documento_create' %}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Nuevo Documento
+        </a>
+    </div>
+</div>
+
+<!-- Información principal -->
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h5><i class="fas fa-id-card"></i> Información del Cliente</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>DNI/RUC:</strong> {{ cliente.dni_ruc }}</p>
+                <p><strong>Teléfono:</strong> {{ cliente.telefono|default:"–" }}</p>
+                <p><strong>Dirección:</strong> {{ cliente.direccion|default:"–" }}</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Correo:</strong> {{ cliente.correo|default:"–" }}</p>
+                <p><strong>Creado el:</strong> {{ cliente.creado_en|date:"d/m/Y H:i" }} (Lima)</p>
+            </div>
+        </div>
+
+        <!-- Notas -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <p><strong>Notas:</strong></p>
+                {% if cliente.notas %}
+                    <div class="alert alert-light border">{{ cliente.notas|linebreaks }}</div>
+                {% else %}
+                    <div class="alert alert-secondary border">No hay notas.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resumen de saldos -->
+<!-- Resumen de saldos -->
+<div class="card mb-4">
+    <div class="card-header bg-dark text-white">
+        <i class="fas fa-chart-bar"></i> Resumen de Saldos
+    </div>
+    <div class="card-body p-2">
+        <!-- Escritorio: 6 columnas -->
+        <div class="d-none d-md-flex justify-content-between text-center">
+            <div class="flex-fill p-2 mx-1 alert alert-primary rounded">
+                <small><strong>Total</strong></small><br>
+                <strong>S/ {{ total_facturado|floatformat:2 }}</strong>
+            </div>
+            <div class="flex-fill p-2 mx-1 alert alert-success rounded">
+                <small><strong>Pagado</strong></small><br>
+                <strong>S/ {{ total_pagado|floatformat:2 }}</strong>
+            </div>
+            <div class="flex-fill p-2 mx-1 alert alert-warning rounded">
+                <small><strong>Devolución</strong></small><br>
+                <strong>S/ {{ total_devolucion|floatformat:2 }}</strong>
+            </div>
+            <div class="flex-fill p-2 mx-1 alert alert-info rounded">
+                <small><strong>Saldo</strong></small><br>
+                <strong>S/ {{ saldo_pendiente|floatformat:2 }}</strong>
+            </div>
+            <div class="flex-fill p-2 mx-1 alert alert-danger rounded">
+                <small><strong>Vencido</strong></small><br>
+                <strong>S/ {{ total_vencido|floatformat:2 }}</strong>
+            </div>
+            <div class="flex-fill p-2 mx-1 alert alert-secondary rounded">
+                <small><strong>Docs</strong></small><br>
+                <strong>{{ docs_page_obj.paginator.count }}</strong>
+            </div>
+        </div>
+
+        <!-- Móvil: Cuadrícula 2x3 -->
+        <div class="d-md-none">
+            <div class="row g-1">
+                <div class="col-6">
+                    <div class="alert alert-primary p-2 text-center small">
+                        <strong>Total</strong><br>
+                        S/ {{ total_facturado|floatformat:2 }}
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="alert alert-success p-2 text-center small">
+                        <strong>Pagado</strong><br>
+                        S/ {{ total_pagado|floatformat:2 }}
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="alert alert-warning p-2 text-center small">
+                        <strong>Devolución</strong><br>
+                        S/ {{ total_devolucion|floatformat:2 }}
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="alert alert-info p-2 text-center small">
+                        <strong>Saldo</strong><br>
+                        S/ {{ saldo_pendiente|floatformat:2 }}
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="alert alert-danger p-2 text-center small">
+                        <strong>Vencido</strong><br>
+                        S/ {{ total_vencido|floatformat:2 }}
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="alert alert-secondary p-2 text-center small">
+                        <strong>Docs</strong><br>
+                        {{ docs_page_obj.paginator.count }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pestañas de historial -->
+<!-- Pestañas de historial -->
+<ul class="nav nav-tabs nav-underline mb-4" id="historialTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active d-flex align-items-center gap-2 px-3 py-2" 
+                id="documentos-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#documentos" 
+                type="button">
+            <i class="fas fa-file-invoice"></i>
+            <span>Documentos</span>
+            <span class="badge bg-primary rounded-pill" style="font-size: 0.85em;">
+                {{ docs_page_obj.paginator.count }}
+            </span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2" 
+                id="cobros-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#cobros" 
+                type="button">
+            <i class="fas fa-money-bill-wave"></i>
+            <span>Pagos</span>
+            <span class="badge bg-success rounded-pill" style="font-size: 0.85em;">
+                {{ cobros_page_obj.paginator.count }}
+            </span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2" 
+                id="devoluciones-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#devoluciones" 
+                type="button">
+            <i class="fas fa-undo"></i>
+            <span>Devoluciones</span>
+            <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.85em;">
+                {{ devoluciones_page_obj.paginator.count }}
+            </span>
+        </button>
+    </li>
+</ul>
+
+<!-- <ul class="nav nav-pills mb-4 justify-content-start" id="historialTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active d-flex align-items-center gap-2 px-3 py-2 rounded-pill" 
+                style="background-color: #e3f2fd; color: #1976d2;" 
+                id="documentos-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#documentos" 
+                type="button">
+            <i class="fas fa-file-invoice"></i>
+            Documentos
+            <span class="badge bg-primary rounded-pill ms-2">{{ docs_page_obj.paginator.count }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2 rounded-pill" 
+                style="background-color: #e8f5e8; color: #2e7d32;" 
+                id="cobros-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#cobros" 
+                type="button">
+            <i class="fas fa-money-bill-wave"></i>
+            Pagos
+            <span class="badge bg-success rounded-pill ms-2">{{ cobros_page_obj.paginator.count }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2 rounded-pill" 
+                style="background-color: #fff8e1; color: #f57c00;" 
+                id="devoluciones-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#devoluciones" 
+                type="button">
+            <i class="fas fa-undo"></i>
+            Devoluciones
+            <span class="badge bg-warning text-dark rounded-pill ms-2">{{ devoluciones_page_obj.paginator.count }}</span>
+        </button>
+    </li>
+</ul> -->
+
+<div class="tab-content" id="historialTabsContent">
+
+    <!-- Documentos -->
+    <!-- Documentos -->
+    <div class="tab-pane fade" id="documentos" role="tabpanel">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                <strong>Documentos del Cliente</strong>
+                <a href="{% url 'documentos:documento_create' %}?cliente={{ cliente.pk }}" class="btn btn-success">
+                    <i class="fas fa-file-invoice"></i> Nuevo Documento para {{ cliente.nombre|truncatechars:15 }}
+                </a>
+            </div>
+            <div class="card-body">
+                <!-- Filtro -->
+                <form method="get" class="mb-3">
+                    <div class="input-group">
+                        <input type="text" name="docs_q" class="form-control" placeholder="Buscar por número..." value="{{ docs_query|default:"" }}">
+                        <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+                        <a href="." class="btn btn-secondary">Limpiar</a>
+                    </div>
+                </form>
+
+                <!-- Tabla (escritorio) -->
+                <div class="d-none d-md-block">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Número</th>
+                                <th>Total</th>
+                                <th>Pagado</th>
+                                <th>Devolución</th>
+                                <th>Saldo</th>
+                                <th>Estado</th>
+                                <th>Vencimiento</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in docs_page_obj %}
+                            <tr>
+                                <td>{{ doc.get_tipo_display }}</td>
+                                <!-- ✅ Número clickeable -->
+                                <td>
+                                    <a href="{% url 'documentos:documento_detail' doc.pk %}" 
+                                    class="text-decoration-none">
+                                        {{ doc.get_numero_completo }}
+                                    </a>
+                                </td>
+                                <td>S/ {{ doc.monto_total|floatformat:2 }}</td>
+                                <td>S/ {{ doc.monto_pagado|floatformat:2 }}</td>
+                                <td>S/ {{ doc.monto_devolucion|floatformat:2 }}</td>
+                                <td>S/ {{ doc.get_saldo_pendiente|floatformat:2 }}</td>
+                                <td>
+                                    {% if doc.get_estado == 'pagado' %}
+                                        <span class="badge bg-success">Pagado</span>
+                                    {% elif doc.get_estado == 'vencido' %}
+                                        <span class="badge bg-danger">Vencido</span>
+                                    {% elif doc.get_estado == 'pago_parcial' %}
+                                        <span class="badge bg-info text-white">Pago Parcial</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Pendiente</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ doc.fecha_vencimiento|date:"d/m/Y" }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'documentos:documento_detail' doc.pk %}" class="btn btn-sm btn-info" title="Ver">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if doc.get_saldo_pendiente > 0 %}
+                                            <a href="{% url 'cobros:cobro_create' %}?documento={{ doc.pk }}&next={{ request.get_full_path|urlencode }}#documentos" 
+                                            class="btn btn-sm btn-success" title="Pagar">
+                                                <i class="fas fa-money-bill-wave"></i>
+                                            </a>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-secondary" disabled title="Pagado">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        {% endif %}
+                                        {% if doc.get_saldo_pendiente > 0 %}
+                                            <a href="{% url 'devoluciones:devolucion_create' %}?documento={{ doc.pk }}&next={{ request.get_full_path|urlencode }}#documentos" 
+                                            class="btn btn-sm btn-primary" title="Registrar devolución">
+                                                <i class="fas fa-undo"></i>
+                                            </a>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-secondary" disabled title="No hay saldo pendiente para devolver">
+                                                <i class="fas fa-undo"></i>
+                                            </button>
+                                        {% endif %}
+                                        <!-- ✅ Botón Eliminar -->
+                                        {% if doc.monto_pagado == 0 and doc.monto_devolucion == 0 %}
+                                            <form method="post" action="{% url 'documentos:documento_delete' doc.pk %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-danger" 
+                                                        onclick="return confirm('¿Eliminar documento {{ doc.get_numero_completo }}? No se podrá recuperar.');">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="9" class="text-center">No hay documentos.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tarjetas (móvil) -->
+                <div class="d-md-none">
+                    {% for doc in docs_page_obj %}
+                    <div class="card mb-3 border">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <!-- ✅ Número clickeable en móvil -->
+                                <h6 class="mb-0">
+                                    <a href="{% url 'documentos:documento_detail' doc.pk %}" 
+                                    class="text-decoration-none">
+                                        <strong>{{ doc.get_tipo_display }}</strong>
+                                        {{ doc.get_numero_completo }}
+                                    </a>
+                                </h6>
+                                <span class="badge 
+                                    {% if doc.get_estado == 'pagado' %}
+                                        bg-success
+                                    {% elif doc.get_estado == 'vencido' %}
+                                        bg-danger
+                                    {% elif doc.get_estado == 'pago_parcial' %}
+                                        bg-info text-white
+                                    {% else %}
+                                        bg-warning text-dark
+                                    {% endif %}
+                                    rounded-pill px-3 py-1" style="font-size: 0.85em;">
+                                    {% if doc.get_estado == 'pago_parcial' %}Pago Parcial{% else %}{{ doc.get_estado|title }}{% endif %}
+                                </span>
+                            </div>
+
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <small><strong>Total:</strong> S/ {{ doc.monto_total|floatformat:2 }}</small><br>
+                                    <small><strong>Pagado:</strong> S/ {{ doc.monto_pagado|floatformat:2 }}</small>
+                                </div>
+                                <div class="col-6">
+                                    <small><strong>Saldo:</strong> S/ {{ doc.get_saldo_pendiente|floatformat:2 }}</small><br>
+                                    <small><strong>Devolución:</strong> S/ {{ doc.monto_devolucion|floatformat:2 }}</small><br>
+                                    <small><strong>Vence:</strong> {{ doc.fecha_vencimiento|date:"d/m/Y" }}</small>
+                                </div>
+                            </div>
+                            <div class="btn-group btn-group-sm w-100">
+                                <a href="{% url 'documentos:documento_detail' doc.pk %}" class="btn btn-info" title="Ver">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if doc.get_saldo_pendiente > 0 %}
+                                    <a href="{% url 'cobros:cobro_create' %}?documento={{ doc.pk }}&next={{ request.get_full_path|urlencode }}#documentos" 
+                                    class="btn btn-success" title="Pagar">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </a>
+                                {% else %}
+                                    <button class="btn btn-secondary" disabled title="Pagado">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                {% endif %}
+                                {% if doc.get_saldo_pendiente > 0 %}
+                                    <a href="{% url 'devoluciones:devolucion_create' %}?documento={{ doc.pk }}&next={{ request.get_full_path|urlencode }}#documentos" 
+                                    class="btn btn-primary" title="Registrar devolución">
+                                        <i class="fas fa-undo"></i>
+                                    </a>
+                                {% else %}
+                                    <button class="btn btn-secondary" disabled title="No hay saldo pendiente para devolver">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                {% endif %}
+                                <!-- ✅ Botón Eliminar (móvil) -->
+                                {% if doc.monto_pagado == 0 and doc.monto_devolucion == 0 %}
+                                    <form method="post" action="{% url 'documentos:documento_delete' doc.pk %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm" 
+                                                onclick="return confirm('¿Eliminar documento {{ doc.get_numero_completo }}? No se podrá recuperar.');">
+                                            <i class="fas fa-trash"></i> Eliminar
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-3 text-muted">
+                        No hay documentos.
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Paginación Documentos -->
+                {% if docs_page_obj.has_other_pages %}
+                <nav aria-label="Paginación documentos">
+                    <ul class="pagination justify-content-center">
+                        {% if docs_page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?docs_page={{ docs_page_obj.previous_page_number }}{% if docs_query %}&docs_q={{ docs_query|urlencode }}{% endif %}">
+                                &laquo;
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                        {% endif %}
+                        {% for num in docs_page_obj.paginator.page_range %}
+                        <li class="page-item {% if num == docs_page_obj.number %}active{% endif %}">
+                            <a class="page-link" href="?docs_page={{ num }}{% if docs_query %}&docs_q={{ docs_query|urlencode }}{% endif %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                        {% if docs_page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?docs_page={{ docs_page_obj.next_page_number }}{% if docs_query %}&docs_q={{ docs_query|urlencode }}{% endif %}">
+                                &raquo;
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagos -->
+    <!-- Pagos -->
+    <div class="tab-pane fade" id="cobros" role="tabpanel">
+        <div class="card">
+            <div class="card-header"><strong>Pagos Realizados</strong></div>
+            <div class="card-body">
+                <form method="get" class="mb-3">
+                    <div class="input-group">
+                        <input type="text" name="cobros_q" class="form-control" placeholder="Buscar por monto o documento..." value="{{ cobros_query|default:"" }}">
+                        <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+                        <a href="." class="btn btn-secondary">Limpiar</a>
+                    </div>
+                </form>
+
+                <!-- Tabla (escritorio) -->
+                <div class="d-none d-md-block">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Documento</th>
+                                <th>Monto</th>
+                                <th>Cobrador</th>
+                                <th>Referencia</th>
+                                <th>Notas</th>  <!-- ✅ Nueva columna -->
+                                <th>Fecha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cobro in cobros_page_obj %}
+                            <tr>
+                                <!-- ✅ Documento clickeable -->
+                                <td>
+                                    <a href="{% url 'documentos:documento_detail' cobro.documento.pk %}" 
+                                    class="text-decoration-none">
+                                        <strong>{{ cobro.documento.get_tipo_display }}</strong><br>
+                                        {{ cobro.documento.get_numero_completo }}
+                                    </a>
+                                </td>
+                                <td>S/ {{ cobro.monto|floatformat:2 }}</td>
+                                <td>
+                                    <!-- ✅ Cobrador clickeable -->
+                                    <a href="{% url 'cobradores:cobrador_detail' cobro.cobrador.pk %}" 
+                                    class="text-decoration-none">
+                                        {{ cobro.cobrador.nombre }}
+                                    </a>
+                                </td>
+                                <!-- ✅ Referencia clickeable -->
+                                <td>
+                                    {% if cobro.referencia %}
+                                        <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
+                                        class="badge bg-info text-white text-decoration-none">
+                                            {{ cobro.referencia }}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">–</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if cobro.notas %}
+                                        <small class="text-muted">{{ cobro.notas|linebreaksbr|truncatechars:60 }}</small>
+                                    {% else %}
+                                        <span class="text-muted">–</span>
+                                    {% endif %}
+                                </td>
+
+
+                                <td>{{ cobro.fecha|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    <form method="post" action="{% url 'cobros:cobro_delete' cobro.pk %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                                onclick="return confirm('¿Eliminar pago de S/ {{ cobro.monto|floatformat:2 }}?');">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center">No hay pagos.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tarjetas (móvil) -->
+                <div class="d-md-none">
+                    {% for cobro in cobros_page_obj %}
+                    <div class="card mb-3 border">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <!-- ✅ Documento clickeable en móvil -->
+                                    <h6 class="mb-0">
+                                        <a href="{% url 'documentos:documento_detail' cobro.documento.pk %}" 
+                                        class="text-decoration-none">
+                                            <strong>{{ cobro.documento.get_tipo_display }}</strong>
+                                            {{ cobro.documento.get_numero_completo }}
+                                        </a>
+                                    </h6>
+                                    <!-- ✅ Cobrador clickeable en móvil -->
+                                    <small class="text-muted">
+                                        <a href="{% url 'cobradores:cobrador_detail' cobro.cobrador.pk %}" 
+                                        class="text-decoration-none">
+                                            {{ cobro.cobrador.nombre }}
+                                        </a>
+                                    </small>
+                                </div>
+                                <span class="badge bg-success rounded-pill px-3 py-1" style="font-size: 0.85em;">Pago</span>
+                            </div>
+
+                            <div class="mb-2">
+                                <strong>Monto:</strong> S/ {{ cobro.monto|floatformat:2 }}
+                            </div>
+                            {% if cobro.referencia %}
+                            <p class="mb-1">
+                                <strong>Referencia:</strong>
+                                <!-- ✅ Referencia clickeable en móvil -->
+                                <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
+                                class="badge bg-info text-white text-decoration-none">
+                                    {{ cobro.referencia }}
+                                </a>
+                            </p>
+                            {% endif %}
+
+                            <!-- ✅ Notas (móvil) -->
+                            {% if cobro.notas %}
+                                <div class="col-12">
+                                    <small>
+                                        <strong>Notas:</strong> 
+                                        <span class="text-muted">{{ cobro.notas|truncatechars:60 }}</span>
+                                    </small>
+                                </div>
+                            {% endif %}
+
+
+                            <p class="mb-0 text-muted">
+                                <small>Fecha: {{ cobro.fecha|date:"d/m/Y H:i" }}</small>
+                            </p>
+
+                            <div class="mt-2">
+                                <form method="post" action="{% url 'cobros:cobro_delete' cobro.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-danger"
+                                            onclick="return confirm('¿Eliminar pago de S/ {{ cobro.monto|floatformat:2 }}?');">
+                                        <i class="fas fa-trash"></i> Eliminar
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-3 text-muted">
+                        No hay pagos registrados.
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Paginación Cobros -->
+                {% if cobros_page_obj.has_other_pages %}
+                <nav>
+                    <ul class="pagination justify-content-center">
+                        {% if cobros_page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?cobros_page={{ cobros_page_obj.previous_page_number }}{% if cobros_query %}&cobros_q={{ cobros_query|urlencode }}{% endif %}">
+                                &laquo;
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                        {% endif %}
+                        {% for num in cobros_page_obj.paginator.page_range %}
+                        <li class="page-item {% if num == cobros_page_obj.number %}active{% endif %}">
+                            <a class="page-link" href="?cobros_page={{ num }}{% if cobros_query %}&cobros_q={{ cobros_query|urlencode }}{% endif %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                        {% if cobros_page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?cobros_page={{ cobros_page_obj.next_page_number }}{% if cobros_query %}&cobros_q={{ cobros_query|urlencode }}{% endif %}">
+                                &raquo;
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Devoluciones -->
+    <!-- Devoluciones -->
+    <!-- Devoluciones -->
+    <!-- Devoluciones -->
+    <div class="tab-pane fade" id="devoluciones" role="tabpanel">
+        <div class="card">
+            <div class="card-header"><strong>Devoluciones</strong></div>
+            <div class="card-body">
+                <form method="get" class="mb-3">
+                    <div class="input-group">
+                        <input type="text" name="devoluciones_q" class="form-control" placeholder="Buscar por monto o documento..." value="{{ devoluciones_query|default:"" }}">
+                        <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+                        <a href="." class="btn btn-secondary">Limpiar</a>
+                    </div>
+                </form>
+
+                <!-- Tabla (escritorio) -->
+                <div class="d-none d-md-block">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Documento</th>
+                                <th>Monto</th>
+                                <th>Cobrador</th>
+                                <th>Notas</th>  <!-- ✅ Nueva columna -->
+                                <th>Fecha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dev in devoluciones_page_obj %}
+                            <tr>
+                                <!-- ✅ Documento clickeable -->
+                                <td>
+                                    <a href="{% url 'documentos:documento_detail' dev.documento.pk %}" 
+                                    class="text-decoration-none">
+                                        <strong>{{ dev.documento.get_tipo_display }}</strong><br>
+                                        {{ dev.documento.get_numero_completo }}
+                                    </a>
+                                </td>
+                                <td>S/ {{ dev.monto|floatformat:2 }}</td>
+                                <!-- ✅ Cobrador clickeable -->
+                                <td>
+                                    <a href="{% url 'cobradores:cobrador_detail' dev.cobrador.pk %}" 
+                                    class="text-decoration-none">
+                                        {{ dev.cobrador.nombre }}
+                                    </a>
+                                </td>
+                                <!-- ✅ Notas -->
+                                <td>
+                                    {% if dev.notas %}
+                                        <small class="text-muted">{{ dev.notas|linebreaksbr|truncatechars:60 }}</small>
+                                    {% else %}
+                                        <span class="text-muted">–</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ dev.fecha|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    <form method="post" action="{% url 'devoluciones:devolucion_delete' dev.pk %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                                onclick="return confirm('¿Eliminar devolución de S/ {{ dev.monto|floatformat:2 }}?');">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center">No hay devoluciones.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tarjetas (móvil) -->
+                <div class="d-md-none">
+                    {% for dev in devoluciones_page_obj %}
+                    <div class="card mb-3 border">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <!-- ✅ Documento clickeable en móvil -->
+                                    <h6 class="mb-0">
+                                        <a href="{% url 'documentos:documento_detail' dev.documento.pk %}" 
+                                        class="text-decoration-none">
+                                            <strong>{{ dev.documento.get_tipo_display }}</strong>
+                                            {{ dev.documento.get_numero_completo }}
+                                        </a>
+                                    </h6>
+                                    <!-- ✅ Cobrador clickeable en móvil -->
+                                    <small class="text-muted">
+                                        <a href="{% url 'cobradores:cobrador_detail' dev.cobrador.pk %}" 
+                                        class="text-decoration-none">
+                                            {{ dev.cobrador.nombre }}
+                                        </a>
+                                    </small>
+                                </div>
+                                <span class="badge bg-warning text-dark rounded-pill px-3 py-1" style="font-size: 0.85em;">Devolución</span>
+                            </div>
+
+                            <div class="mb-2">
+                                <strong>Monto:</strong> S/ {{ dev.monto|floatformat:2 }}
+                            </div>
+
+                            <!-- ✅ Notas (móvil) -->
+                            {% if dev.notas %}
+                                <p class="mb-1">
+                                    <strong>Notas:</strong>
+                                    <small class="text-muted">{{ dev.notas|truncatechars:60 }}</small>
+                                </p>
+                            {% endif %}
+
+                            <p class="mb-0 text-muted">
+                                <small>Fecha: {{ dev.fecha|date:"d/m/Y H:i" }}</small>
+                            </p>
+
+                            <div class="mt-2">
+                                <form method="post" action="{% url 'devoluciones:devolucion_delete' dev.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-danger"
+                                            onclick="return confirm('¿Eliminar devolución de S/ {{ dev.monto|floatformat:2 }}?');">
+                                        <i class="fas fa-trash"></i> Eliminar
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-3 text-muted">
+                        No hay devoluciones.
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Paginación Devoluciones -->
+                {% if devoluciones_page_obj.has_other_pages %}
+                <nav>
+                    <ul class="pagination justify-content-center">
+                        {% if devoluciones_page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?devoluciones_page={{ devoluciones_page_obj.previous_page_number }}{% if devoluciones_query %}&devoluciones_q={{ devoluciones_query|urlencode }}{% endif %}">
+                                &laquo;
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                        {% endif %}
+                        {% for num in devoluciones_page_obj.paginator.page_range %}
+                        <li class="page-item {% if num == devoluciones_page_obj.number %}active{% endif %}">
+                            <a class="page-link" href="?devoluciones_page={{ num }}{% if devoluciones_query %}&devoluciones_q={{ devoluciones_query|urlencode }}{% endif %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                        {% if devoluciones_page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?devoluciones_page={{ devoluciones_page_obj.next_page_number }}{% if devoluciones_query %}&devoluciones_q={{ devoluciones_query|urlencode }}{% endif %}">
+                                &raquo;
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para pestañas persistentes -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const hash = window.location.hash;
+    const urlParams = new URLSearchParams(window.location.search);
+    let targetTabId = 'documentos'; // por defecto
+
+    // ✅ ORDEN CORRECTO: docs_page > cobros_page > devoluciones_page > hash
+    if (urlParams.has('docs_page')) {
+        targetTabId = 'documentos';
+    }
+    else if (urlParams.has('cobros_page')) {
+        targetTabId = 'cobros';
+    }
+    else if (urlParams.has('devoluciones_page')) {
+        targetTabId = 'devoluciones';
+    }
+    else if (hash && ['documentos', 'cobros', 'devoluciones'].includes(hash.replace('#', ''))) {
+        targetTabId = hash.replace('#', '');
+    }
+
+    // ✅ Limpiar todas las pestañas
+    document.querySelectorAll('.tab-pane').forEach(pane => {
+        pane.classList.remove('show', 'active');
+    });
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+
+    // ✅ Activar la correcta
+    const trigger = document.querySelector(`button[data-bs-target="#${targetTabId}"]`);
+    const tabPane = document.querySelector(`#${targetTabId}`);
+
+    if (trigger && tabPane) {
+        const tab = new bootstrap.Tab(trigger);
+        tab.show();
+    }
+
+    // ✅ Guardar hash al cambiar
+    const tabs = document.querySelectorAll('#historialTabs button[data-bs-toggle="tab"]');
+    tabs.forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function (e) {
+            window.location.hash = e.target.getAttribute('data-bs-target');
+        });
+    });
+});
+</script>
+
+{% endblock %}

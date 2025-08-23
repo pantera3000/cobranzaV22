@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load cobros_filters %}
+
+{% block title %}Reporte de Cartera de Cobranzas{% endblock %}
+
+{% block extra_css %}
+<style>
+    .summary-card { border-left: 4px solid #007bff; }
+    .table-sm th, .table-sm td { font-size: 0.9em; padding: 0.4rem; }
+    .text-vencido { color: #dc3545; font-weight: 500; }
+    .chart-container { height: 300px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-line"></i> Reporte de Cartera de Cobranzas</h2>
+    <div>
+        <a href="{% url 'cobros:cobro_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver cobros Registrados
+        </a>
+
+        <button type="button" class="btn btn-outline-secondary me-2" onclick="window.history.back();">
+            <i class="fas fa-arrow-left"></i> Volver
+        </button>
+
+
+
+        <a href="{% url 'cobros:exportar_cartera_excel' %}" class="btn btn-success ms-2">
+            <i class="fas fa-file-excel"></i> Exportar a Excel
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-info text-center">
+    <i class="fas fa-calendar"></i> Reporte al: <strong>{{ fecha_reporte|date:"d/m/Y" }}</strong>
+</div>
+
+<!-- Resumen General -->
+<div class="row mb-4">
+    <div class="col-md-2 mb-2">
+        <div class="card summary-card bg-light">
+            <div class="card-body text-center">
+                <h6>Total Facturado</h6>
+                <p class="h5 fw-bold">S/ {{ total_facturado|floatformat:2 }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 mb-2">
+        <div class="card summary-card bg-light">
+            <div class="card-body text-center">
+                <h6>Total Cobrado</h6>
+                <p class="h5 fw-bold text-success">S/ {{ total_pagado|floatformat:2 }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 mb-2">
+        <div class="card summary-card bg-light">
+            <div class="card-body text-center">
+                <h6>Devoluciones</h6>
+                <p class="h5 fw-bold text-warning">S/ {{ total_devolucion|floatformat:2 }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 mb-2">
+        <div class="card summary-card bg-light">
+            <div class="card-body text-center">
+                <h6>Saldo Pendiente</h6>
+                <p class="h5 fw-bold">S/ {{ total_pendiente|floatformat:2 }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 mb-2">
+        <div class="card summary-card bg-light">
+            <div class="card-body text-center">
+                <h6>Vencido</h6>
+                <p class="h5 fw-bold text-vencido">S/ {{ total_vencido|floatformat:2 }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 mb-2">
+        <div class="card summary-card bg-light">
+            <div class="card-body text-center">
+                <h6>% Vencido</h6>
+                <p class="h5 fw-bold">
+                    {% if total_pendiente > 0 %}
+                        {{ total_vencido|div:total_pendiente|floatformat:1 }}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Top Clientes con Saldo Pendiente -->
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5><i class="fas fa-users"></i> Top 10 Clientes con Saldo Pendiente</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Saldo</th>
+                                <th>Vencido</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in clientes_pendientes %}
+                            <tr>
+                                <td>{{ item.cliente.nombre|truncatechars:25 }}</td>
+                                <td>S/ {{ item.saldo|floatformat:2 }}</td>
+                                <td class="text-vencido">S/ {{ item.vencido|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center">No hay saldos pendientes.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen por Cobrador -->
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5><i class="fas fa-user-shield"></i> Resumen por Cobrador</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm">
+                        <thead>
+                            <tr>
+                                <th>Cobrador</th>
+                                <th>Total Cobrado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in cobradores_data %}
+                            <tr>
+                                <td>{{ item.cobrador.nombre }}</td>
+                                <td>S/ {{ item.total_cobrado|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="2" class="text-center">No hay cobros registrados.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Evolución Mensual -->
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h5><i class="fas fa-chart-bar"></i> Evolución de Cobros (Últimos 6 meses)</h5>
+    </div>
+    <div class="card-body chart-container">
+        <canvas id="evolucionChart"></canvas>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('evolucionChart').getContext('2d');
+    const evolucion = {{ evolucion|safe }};
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: evolucion.map(e => e.mes),
+            datasets: [{
+                label: 'Monto Cobrado (S/)',
+                data: evolucion.map(e => e.cobrado),
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `S/ ${context.parsed.y.toLocaleString('es-PE', {minimumFractionDigits: 2})}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'S/ ' + value.toLocaleString('es-PE');
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

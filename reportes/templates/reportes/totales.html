@@ -1,0 +1,254 @@
+{% extends 'reportes/base.html' %}
+{% load math_filters %}
+
+{% block title %}Totales del Sistema{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-line"></i> Totales del Sistema</h2>
+    <div>
+        <a href="{% url 'reportes:exportar_excel' 'totales' %}" class="btn btn-success me-2">
+            <i class="fas fa-file-excel"></i> Exportar a Excel
+        </a>
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#infoModal">
+            <i class="fas fa-info-circle"></i> Ayuda
+        </button>
+    </div>
+</div>
+
+<!-- Tarjetas de totales -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card border-success h-100">
+            <div class="card-body text-center">
+                <h6 class="text-success"><i class="fas fa-file-invoice"></i> Facturado</h6>
+                <h3 class="fw-bold text-success">S/ {{ total_facturado|floatformat:2 }}</h3>
+                <small>Total de documentos emitidos</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-primary h-100">
+            <div class="card-body text-center">
+                <h6 class="text-primary"><i class="fas fa-check-circle"></i> Pagado</h6>
+                <h3 class="fw-bold text-primary">S/ {{ total_pagado|floatformat:2 }}</h3>
+                <small>
+                    {% if total_facturado > 0 %}
+                        {{ total_pagado|div:total_facturado|multiply:100|floatformat:1 }}% del total
+                    {% else %}
+                        0%
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-warning h-100">
+            <div class="card-body text-center">
+                <h6 class="text-warning"><i class="fas fa-undo"></i> Devolución</h6>
+                <h3 class="fw-bold text-warning">S/ {{ total_devolucion|floatformat:2 }}</h3>
+                <small>Monto anulado o devuelto</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-danger h-100">
+            <div class="card-body text-center">
+                <h6 class="text-danger"><i class="fas fa-clock"></i> Pendiente</h6>
+                <h3 class="fw-bold text-danger">S/ {{ total_pendiente|floatformat:2 }}</h3>
+                <small>
+                    {% if total_facturado > 0 %}
+                        {{ total_pendiente|div:total_facturado|multiply:100|floatformat:1 }}% por cobrar
+                    {% else %}
+                        0%
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos en dos columnas -->
+<div class="row mb-4">
+    <!-- Gráfico 1: Distribución de montos -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-chart-pie"></i> Distribución de Montos
+            </div>
+            <div class="card-body">
+                <canvas id="chartTotales" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico 2: Documentos por tipo -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-file-alt"></i> Documentos por Tipo
+            </div>
+            <div class="card-body">
+                <canvas id="chartTipos" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resumen detallado -->
+<div class="card">
+    <div class="card-header bg-secondary text-white">
+        <i class="fas fa-list"></i> Detalles del Sistema
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-info">
+                    <div class="card-body">
+                        <h5><i class="fas fa-file"></i> Documentos</h5>
+                        <p><strong>Total:</strong> {{ count_documentos }}</p>
+                        <a href="{% url 'documentos:documento_list' %}" class="btn btn-sm btn-info">
+                            <i class="fas fa-list"></i> Ver todos
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-primary">
+                    <div class="card-body">
+                        <h5><i class="fas fa-users"></i> Clientes</h5>
+                        <p><strong>Únicos:</strong> {{ count_clientes }}</p>
+                        <a href="{% url 'clientes:cliente_list' %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-list"></i> Ver todos
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-danger">
+                    <div class="card-body">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Vencidos</h5>
+                        <p>
+                            <strong>Cantidad:</strong> {{ vencidos.count }}<br>
+                            <strong>Saldo:</strong> S/ {{ total_vencido|floatformat:2 }}
+                        </p>
+                        <a href="{% url 'reportes:clientes_vencidos' %}" class="btn btn-sm btn-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Ver vencidos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de ayuda -->
+<div class="modal fade" id="infoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-info-circle"></i> Información</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Este reporte muestra el estado financiero general del sistema:</p>
+                <ul>
+                    <li><strong>Total Facturado:</strong> Suma de todos los documentos emitidos.</li>
+                    <li><strong>Total Pagado:</strong> Dinero recibido de los clientes.</li>
+                    <li><strong>Devolución:</strong> Montos anulados o devueltos.</li>
+                    <li><strong>Pendiente:</strong> Por cobrar (Facturado - Pagado - Devolución).</li>
+                </ul>
+                <p class="text-muted">Los datos incluyen todos los documentos registrados.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        border-radius: 10px;
+        transition: transform 0.2s;
+    }
+    .card:hover {
+        transform: translateY(-3px);
+    }
+    .card-body h5 {
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // ✅ Gráfico 1: Distribución de montos
+    const ctx1 = document.getElementById('chartTotales').getContext('2d');
+    new Chart(ctx1, {
+        type: 'doughnut',
+        data: {
+            labels: ['Pagado', 'Pendiente', 'Devolución'],
+            datasets: [{
+                data: [
+                    {{ total_pagado|floatformat:2 }},
+                    {{ total_pendiente|floatformat:2 }},
+                    {{ total_devolucion|floatformat:2 }}
+                ],
+                backgroundColor: ['#0d6efd', '#dc3545', '#ffc107'],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${context.label}: S/ ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // ✅ Gráfico 2: Documentos por tipo
+    const ctx2 = document.getElementById('chartTipos').getContext('2d');
+    new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: ['Facturas', 'Boletas', 'Notas de Venta'],
+            datasets: [{
+                label: 'Cantidad de Documentos',
+                data: [
+                    {{ count_facturas }},
+                    {{ count_boletas }},
+                    {{ count_notas }}
+                ],
+                backgroundColor: ['#198754', '#0d6efd', '#fd7e14'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

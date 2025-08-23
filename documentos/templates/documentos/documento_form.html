@@ -1,0 +1,137 @@
+{% extends 'documentos/base.html' %}
+
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4><i class="fas fa-file-invoice"></i> {{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            
+                            <div class="form-group">
+                                <label for="id_cliente_busqueda" class="requiredField">
+                                    Cliente
+                                </label>
+                                <input type="text"
+                                    id="id_cliente_busqueda"
+                                    class="form-control"
+                                    placeholder="Buscar cliente por nombre o DNI/RUC..."
+                                    value="{{ form.cliente_busqueda.value|default:'' }}"
+                                    autocomplete="off">
+                                {{ form.cliente }}  <!-- hidden input -->
+                                <div id="cliente-suggestions" class="position-absolute border bg-white shadow-sm rounded mt-1 w-100" style="display: none; max-height: 200px; overflow-y: auto; z-index: 1000;"></div>
+                                <small id="cliente-error" class="text-danger" style="display: none;">Selecciona un cliente válido.</small>
+                            </div>
+                            {{ form.cobrador|as_crispy_field }}
+                            {{ form.tipo|as_crispy_field }}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ form.serie|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.numero|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.fecha_emision|as_crispy_field }}
+                            {{ form.fecha_vencimiento|as_crispy_field }}
+                            {{ form.monto_total|as_crispy_field }}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-3">
+                        <a href="{% url 'documentos:documento_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Volver
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Guardar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% block extra_js %}
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const input = document.getElementById('id_cliente_busqueda');
+        const hidden = document.getElementById('id_cliente');
+        const suggestions = document.getElementById('cliente-suggestions');
+        const error = document.getElementById('cliente-error');
+
+        let clientes = [];
+
+        input.addEventListener('input', function () {
+            const query = this.value.trim();
+            if (query.length < 2) {
+                suggestions.style.display = 'none';
+                return;
+            }
+
+            fetch('{% url "documentos:cliente_search_api" %}?q=' + encodeURIComponent(query))
+                .then(r => r.json())
+                .then(data => {
+                    clientes = data;
+                    showSuggestions();
+                });
+        });
+
+        function showSuggestions() {
+            suggestions.innerHTML = '';
+            if (clientes.length === 0) {
+                suggestions.style.display = 'none';
+                return;
+            }
+
+            clientes.forEach(c => {
+                const div = document.createElement('div');
+                div.textContent = c.display;
+                div.style.padding = '10px';
+                div.style.cursor = 'pointer';
+                div.style.borderBottom = '1px solid #eee';
+                div.addEventListener('mouseenter', () => div.style.backgroundColor = '#f8f9fa');
+                div.addEventListener('mouseleave', () => div.style.backgroundColor = 'white');
+                div.addEventListener('click', () => {
+                    input.value = c.display;
+                    hidden.value = c.id;
+                    suggestions.style.display = 'none';
+                    error.style.display = 'none';
+                });
+                suggestions.appendChild(div);
+            });
+
+            suggestions.style.display = 'block';
+        }
+
+        document.addEventListener('click', function (e) {
+            if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+                suggestions.style.display = 'none';
+            }
+        });
+
+        // Validar antes de enviar
+        document.querySelector('form').addEventListener('submit', function (e) {
+            if (!hidden.value && input.value.trim()) {
+                error.style.display = 'block';
+                e.preventDefault();
+            } else if (!hidden.value && !input.value.trim()) {
+                error.style.display = 'block';
+                e.preventDefault();
+            }
+        });
+    });
+    </script>
+    {% endblock %}
+
+</div>
+{% endblock %}

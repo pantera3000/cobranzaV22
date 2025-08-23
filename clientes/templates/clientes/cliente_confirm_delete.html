@@ -1,0 +1,30 @@
+{% extends 'clientes/base.html' %}
+
+{% block title %}Eliminar Cliente{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4><i class="fas fa-exclamation-triangle"></i> Confirmar Eliminación</h4>
+            </div>
+            <div class="card-body">
+                <p>¿Estás seguro de que deseas eliminar al cliente?</p>
+                <strong>{{ cliente.nombre }} ({{ cliente.dni_ruc }})</strong>
+                <form method="post" class="mt-3">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'clientes:cliente_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

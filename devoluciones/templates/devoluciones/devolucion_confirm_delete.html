@@ -1,0 +1,27 @@
+
+<div class="modal fade" id="deleteDevolucionModal-{{ devolucion.pk }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Eliminar Devolución</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Eliminar devolución de <strong>S/ {{ devolucion.monto|floatformat:2 }}</strong>?</p>
+                <p><small>Documento: {{ devolucion.documento.get_tipo_display }} {{ devolucion.documento.get_numero_completo }}</small></p>
+            </div>
+
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{% url 'devoluciones:devolucion_delete' devolucion.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+
+
+
+        </div>
+    </div>
+</div>

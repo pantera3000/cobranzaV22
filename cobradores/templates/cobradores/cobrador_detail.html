@@ -1,0 +1,632 @@
+{% extends 'base.html' %}
+{% load custom_filters %} 
+
+{% block title %}Detalle de {{ cobrador.nombre }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-user-shield"></i> Detalle del Cobrador: {{ cobrador.nombre }}</h2>
+    <a href="{% url 'reportes:cobradores' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Volver a reporte cobradores
+    </a>
+    <button type="button" class="btn btn-outline-secondary me-2" onclick="window.history.back();">
+        <i class="fas fa-arrow-left"></i> Volver Atras
+    </button>
+
+
+
+</div>
+
+<!-- Filtro Global -->
+<div class="card mb-4">
+    <div class="card-body p-3">
+        <h6 class="mb-3"><i class="fas fa-filter"></i> Filtro por Fecha</h6>
+        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+            <div class="btn-group btn-group-sm" role="group">
+                <a href="?filtro=hoy" 
+                   class="btn btn-outline-info {% if filtro_rapido == 'hoy' %}active{% endif %}">
+                    Hoy
+                </a>
+                <a href="?filtro=ayer" 
+                   class="btn btn-outline-info {% if filtro_rapido == 'ayer' %}active{% endif %}">
+                    Ayer
+                </a>
+                <a href="?filtro=mes" 
+                   class="btn btn-outline-primary {% if filtro_rapido == 'mes' %}active{% endif %}">
+                    Este mes
+                </a>
+                <a href="?filtro=mes_pasado" 
+                   class="btn btn-outline-warning {% if filtro_rapido == 'mes_pasado' %}active{% endif %}">
+                    Mes pasado
+                </a>
+                <a href="?filtro=3meses" 
+                   class="btn btn-outline-success {% if filtro_rapido == '3meses' %}active{% endif %}">
+                    Últimos 3 meses
+                </a>
+                <a href="?filtro=año" 
+                   class="btn btn-outline-danger {% if filtro_rapido == 'año' %}active{% endif %}">
+                    Este año
+                </a>
+                <a href="?filtro=año_pasado" 
+                   class="btn btn-outline-secondary {% if filtro_rapido == 'año_pasado' %}active{% endif %}">
+                    Año pasado
+                </a>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#filtroFecha">
+                <i class="fas fa-calendar"></i> Personalizado
+            </button>
+        </div>
+
+        <!-- Filtro personalizado (colapsable) -->
+        <div class="collapse mt-3" id="filtroFecha">
+            <form method="get" class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label">Desde</label>
+                    <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde }}">
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Hasta</label>
+                    <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Aplicar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- Resumen del filtro actual -->
+<div class="alert alert-info mb-4">
+    <i class="fas fa-info-circle"></i> 
+    <strong>Filtro actual:</strong> {{ filtro_label }}
+</div>
+
+
+
+<!-- Información principal -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5><i class="fas fa-id-card"></i> Información del Cobrador</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <p><strong>DNI:</strong> {{ cobrador.dni }}</p>
+                <p><strong>Teléfono:</strong> {{ cobrador.telefono|default:"–" }}</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Total Cobrado:</strong> <span class="fw-bold text-success">S/ {{ total_cobrado|floatformat:2 }}</span></p>
+                <p><strong>Pendiente:</strong> <span class="fw-bold text-warning">S/ {{ total_pendiente|floatformat:2 }}</span></p>
+                <p><strong>Vencido:</strong> <span class="fw-bold text-danger">S/ {{ total_vencido|floatformat:2 }}</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pestañas -->
+<!-- Pestañas -->
+<ul class="nav nav-tabs mb-4" id="cobradorTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="pagos-tab" data-bs-toggle="tab" data-bs-target="#pagos" type="button">
+            <i class="fas fa-money-bill-wave"></i> 
+            Pagos Realizados 
+            <span class="badge bg-primary rounded-pill ms-1">{{ cobros_page_obj.paginator.count }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="devoluciones-tab" data-bs-toggle="tab" data-bs-target="#devoluciones" type="button">
+            <i class="fas fa-undo"></i> 
+            Devoluciones 
+            <span class="badge bg-primary rounded-pill ms-1">{{ devoluciones_page_obj.paginator.count }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="pendientes-tab" data-bs-toggle="tab" data-bs-target="#pendientes" type="button">
+            <i class="fas fa-clock"></i> 
+            Pendientes 
+            <span class="badge bg-primary rounded-pill ms-1">{{ pendientes_page_obj.paginator.count }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="vencidos-tab" data-bs-toggle="tab" data-bs-target="#vencidos" type="button">
+            <i class="fas fa-exclamation-triangle"></i> 
+            Vencidos 
+            <span class="badge bg-primary rounded-pill ms-1">{{ vencidos_page_obj.paginator.count }}</span>
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="cobradorTabsContent">
+
+    <!-- Pagos -->
+    <!-- Pagos -->
+    <div class="tab-pane fade show active" id="pagos" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-money-bill-wave text-success"></i> 
+                    Pagos Realizados 
+                    <span class="badge bg-primary rounded-pill">{{ cobros_page_obj.paginator.count }}</span>
+                </h5>
+                {% if cobros_page_obj %}
+                    <!-- Escritorio: Tabla -->
+                    <div class="d-none d-md-block">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Documento</th>
+                                        <th>Cliente</th>
+                                        <th>Monto</th>
+                                        <th>Referencia</th>
+                                        <th>Notas</th>  <!-- ✅ Nueva columna -->
+                                        <th>Fecha</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for cobro in cobros_page_obj %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'documentos:documento_detail' cobro.documento.pk %}" 
+                                            class="text-decoration-none" 
+                                            title="Ver documento">
+                                                {{ cobro.documento.get_tipo_display }} {{ cobro.documento.get_numero_completo }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'clientes:cliente_detail' cobro.documento.cliente.pk %}" 
+                                            class="text-decoration-none" 
+                                            title="Ver cliente">
+                                                {{ cobro.documento.cliente.nombre|truncatechars:20 }}
+                                            </a>
+                                        </td>
+                                        <td class="text-success">S/ {{ cobro.monto|floatformat:2 }}</td>
+                                        <td>
+                                            {% if cobro.referencia %}
+                                                <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
+                                                class="badge bg-info text-white text-decoration-none">
+                                                    {{ cobro.referencia }}
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">–</span>
+                                            {% endif %}
+                                        </td>
+
+                                        <!-- En el <tr> -->
+                                        <td>
+                                            {% if cobro.notas %}
+                                                <small class="text-muted">{{ cobro.notas|linebreaksbr|truncatechars:100 }}</small>
+                                            {% else %}
+                                                <span class="text-muted">–</span>
+                                            {% endif %}
+                                        </td>
+
+                                        <td>{{ cobro.fecha|date:"d/m/Y H:i" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Móvil: Tarjetas -->
+                    <div class="d-md-none">
+                        {% for cobro in cobros_page_obj %}
+                        <div class="card border mb-3">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <a href="{% url 'documentos:documento_detail' cobro.documento.pk %}" 
+                                            class="text-decoration-none">
+                                                {{ cobro.documento.get_tipo_display }} {{ cobro.documento.get_numero_completo }}
+                                            </a>
+                                        </h6>
+                                        <p class="mb-1 small text-muted">
+                                            <a href="{% url 'clientes:cliente_detail' cobro.documento.cliente.pk %}" 
+                                            class="text-decoration-none">
+                                                {{ cobro.documento.cliente.nombre }}
+                                            </a>
+                                        </p>
+                                    </div>
+                                    <span class="badge bg-success rounded-pill px-3 py-2">Pago</span>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <small><strong>Monto:</strong> <span class="text-success">S/ {{ cobro.monto|floatformat:2 }}</span></small>
+                                    </div>
+                                    <div class="col-6">
+                                        <small><strong>Fecha:</strong> {{ cobro.fecha|date:"d/m/Y H:i" }}</small>
+                                    </div>
+                                    {% if cobro.referencia %}
+                                    <div class="col-12">
+                                        <small>
+                                            <strong>Referencia:</strong> 
+                                            <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
+                                            class="badge bg-info text-white text-decoration-none">
+                                                {{ cobro.referencia }}
+                                            </a>
+                                        </small>
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- ✅ Notas (móvil) -->
+                                    {% if cobro.notas %}
+                                        <div class="col-12">
+                                            <small>
+                                                <strong>Notas:</strong> 
+                                                <span class="text-muted">{{ cobro.notas|truncatechars:60 }}</span>
+                                            </small>
+                                        </div>
+                                    {% endif %}
+
+
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Paginación -->
+                    {% include 'partials/pagination.html' with page_obj=cobros_page_obj page_param='cobros_page' %}
+                {% else %}
+                    <div class="alert alert-light text-center py-4">
+                        <i class="fas fa-money-bill-wave fa-lg text-muted mb-2"></i><br>
+                        <small>No hay pagos registrados en este periodo.</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Devoluciones -->
+    <div class="tab-pane fade" id="devoluciones" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-undo text-warning"></i> 
+                    Devoluciones Realizadas 
+                    <span class="badge bg-primary rounded-pill">{{ devoluciones_page_obj.paginator.count }}</span>
+                </h5>
+                {% if devoluciones_page_obj %}
+                    <!-- Escritorio: Tabla -->
+                    <div class="d-none d-md-block">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Documento</th>
+                                        <th>Cliente</th>
+                                        <th>Monto</th>
+                                        <th>Fecha</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for dev in devoluciones_page_obj %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'documentos:documento_detail' dev.documento.pk %}" 
+                                               class="text-decoration-none">
+                                                {{ dev.documento.get_tipo_display }} {{ dev.documento.get_numero_completo }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'clientes:cliente_detail' dev.documento.cliente.pk %}" 
+                                               class="text-decoration-none">
+                                                {{ dev.documento.cliente.nombre|truncatechars:20 }}
+                                            </a>
+                                        </td>
+                                        <td class="text-warning">S/ {{ dev.monto|floatformat:2 }}</td>
+                                        <td>{{ dev.fecha|date:"d/m/Y H:i" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Móvil: Tarjetas -->
+                    <div class="d-md-none">
+                        {% for dev in devoluciones_page_obj %}
+                        <div class="card border mb-3">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <a href="{% url 'documentos:documento_detail' dev.documento.pk %}" 
+                                               class="text-decoration-none">
+                                                {{ dev.documento.get_tipo_display }} {{ dev.documento.get_numero_completo }}
+                                            </a>
+                                        </h6>
+                                        <p class="mb-1 small text-muted">
+                                            <a href="{% url 'clientes:cliente_detail' dev.documento.cliente.pk %}" 
+                                               class="text-decoration-none">
+                                                {{ dev.documento.cliente.nombre }}
+                                            </a>
+                                        </p>
+                                    </div>
+                                    <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Devolución</span>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <small><strong>Monto:</strong> <span class="text-warning">S/ {{ dev.monto|floatformat:2 }}</span></small>
+                                    </div>
+                                    <div class="col-6">
+                                        <small><strong>Fecha:</strong> {{ dev.fecha|date:"d/m/Y H:i" }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Paginación -->
+                    {% include 'partials/pagination.html' with page_obj=devoluciones_page_obj page_param='devoluciones_page' %}
+                {% else %}
+                    <div class="alert alert-light text-center py-4">
+                        <i class="fas fa-undo fa-lg text-muted mb-2"></i><br>
+                        <small>No hay devoluciones registradas en este periodo.</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Pendientes -->
+    <div class="tab-pane fade" id="pendientes" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-clock text-primary"></i> 
+                    Documentos Pendientes 
+                    <span class="badge bg-primary rounded-pill">{{ pendientes_page_obj.paginator.count }}</span>
+                </h5>
+                {% if pendientes_page_obj %}
+                    <!-- Escritorio: Tabla -->
+                    <div class="d-none d-md-block">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Documento</th>
+                                        <th>Cliente</th>
+                                        <th>Total</th>
+                                        <th>Pagado</th>
+                                        <th>Saldo</th>
+                                        <th>Vencimiento</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for doc in pendientes_page_obj %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'documentos:documento_detail' doc.pk %}" 
+                                               class="text-decoration-none">
+                                                {{ doc.get_tipo_display }} {{ doc.get_numero_completo }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'clientes:cliente_detail' doc.cliente.pk %}" 
+                                               class="text-decoration-none">
+                                                {{ doc.cliente.nombre|truncatechars:20 }}
+                                            </a>
+                                        </td>
+                                        <td>S/ {{ doc.monto_total|floatformat:2 }}</td>
+                                        <td>S/ {{ doc.monto_pagado|floatformat:2 }}</td>
+                                        <td class="text-primary">S/ {{ doc.get_saldo_pendiente|floatformat:2 }}</td>
+                                        <td>{{ doc.fecha_vencimiento|date:"d/m/Y" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Móvil: Tarjetas -->
+                    <div class="d-md-none">
+                        {% for doc in pendientes_page_obj %}
+                        <div class="card border mb-3">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <a href="{% url 'documentos:documento_detail' doc.pk %}" 
+                                               class="text-decoration-none">
+                                                {{ doc.get_tipo_display }} {{ doc.get_numero_completo }}
+                                            </a>
+                                        </h6>
+                                        <p class="mb-1 small text-muted">
+                                            <a href="{% url 'clientes:cliente_detail' doc.cliente.pk %}" 
+                                               class="text-decoration-none">
+                                                {{ doc.cliente.nombre }}
+                                            </a>
+                                        </p>
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill px-3 py-2">Pendiente</span>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <small><strong>Total:</strong> S/ {{ doc.monto_total|floatformat:2 }}</small><br>
+                                        <small><strong>Pagado:</strong> S/ {{ doc.monto_pagado|floatformat:2 }}</small>
+                                    </div>
+                                    <div class="col-6">
+                                        <small><strong>Saldo:</strong> <span class="text-primary">S/ {{ doc.get_saldo_pendiente|floatformat:2 }}</span></small><br>
+                                        <small><strong>Vence:</strong> {{ doc.fecha_vencimiento|date:"d/m/Y" }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Paginación -->
+                    {% include 'partials/pagination.html' with page_obj=pendientes_page_obj page_param='pendientes_page' %}
+                {% else %}
+                    <div class="alert alert-light text-center py-4">
+                        <i class="fas fa-clock fa-lg text-muted mb-2"></i><br>
+                        <small>No hay documentos pendientes.</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Vencidos -->
+    <div class="tab-pane fade" id="vencidos" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-exclamation-triangle text-danger"></i> 
+                    Documentos Vencidos 
+                    <span class="badge bg-primary rounded-pill">{{ vencidos_page_obj.paginator.count }}</span>
+                </h5>
+                {% if vencidos_page_obj %}
+                    <!-- Escritorio: Tabla -->
+                    <div class="d-none d-md-block">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Documento</th>
+                                        <th>Cliente</th>
+                                        <th>Total</th>
+                                        <th>Saldo</th>
+                                        <th>Vencimiento</th>
+                                        <th>Días</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for doc in vencidos_page_obj %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'documentos:documento_detail' doc.pk %}" 
+                                               class="text-decoration-none">
+                                                {{ doc.get_tipo_display }} {{ doc.get_numero_completo }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'clientes:cliente_detail' doc.cliente.pk %}" 
+                                               class="text-decoration-none">
+                                                {{ doc.cliente.nombre|truncatechars:20 }}
+                                            </a>
+                                        </td>
+                                        <td>S/ {{ doc.monto_total|floatformat:2 }}</td>
+                                        <td class="text-danger">S/ {{ doc.get_saldo_pendiente|floatformat:2 }}</td>
+                                        <td>{{ doc.fecha_vencimiento|date:"d/m/Y" }}</td>
+                                        <td>
+                                            <span class="badge bg-danger">
+                                                {{ doc.get_dias_restantes_absoluto }} días
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Móvil: Tarjetas -->
+                    <div class="d-md-none">
+                        {% for doc in vencidos_page_obj %}
+                        <div class="card border border-danger mb-3">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h6 class="mb-1 text-danger">
+                                            <a href="{% url 'documentos:documento_detail' doc.pk %}" 
+                                               class="text-decoration-none text-danger">
+                                                {{ doc.get_tipo_display }} {{ doc.get_numero_completo }}
+                                            </a>
+                                        </h6>
+                                        <p class="mb-1 small text-muted">
+                                            <a href="{% url 'clientes:cliente_detail' doc.cliente.pk %}" 
+                                               class="text-decoration-none">
+                                                {{ doc.cliente.nombre }}
+                                            </a>
+                                        </p>
+                                    </div>
+                                    <span class="badge bg-danger rounded-pill px-3 py-2">Vencido</span>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <small><strong>Total:</strong> S/ {{ doc.monto_total|floatformat:2 }}</small><br>
+                                        <small><strong>Saldo:</strong> <span class="text-danger">S/ {{ doc.get_saldo_pendiente|floatformat:2 }}</span></small>
+                                    </div>
+                                    <div class="col-6">
+                                        <small><strong>Venció:</strong> {{ doc.fecha_vencimiento|date:"d/m/Y" }}</small><br>
+                                        <small><strong>Atraso:</strong> {{ doc.get_dias_restantes_absoluto }} días</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Paginación -->
+                    {% include 'partials/pagination.html' with page_obj=vencidos_page_obj page_param='vencidos_page' %}
+                {% else %}
+                    <div class="alert alert-light text-center py-4">
+                        <i class="fas fa-exclamation-triangle fa-lg text-muted mb-2"></i><br>
+                        <small>No hay documentos vencidos.</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para pestañas persistentes -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    let targetTabId = 'cobros';
+
+    // Prioridad: devoluciones_page > pendientes_page > vencidos_page > cobros_page
+    if (urlParams.has('devoluciones_page')) {
+        targetTabId = 'devoluciones';
+    } else if (urlParams.has('pendientes_page')) {
+        targetTabId = 'pendientes';
+    } else if (urlParams.has('vencidos_page')) {
+        targetTabId = 'vencidos';
+    } else if (urlParams.has('cobros_page')) {
+        targetTabId = 'cobros';
+    }
+
+    // Activar pestaña
+    const trigger = document.querySelector(`button[data-bs-target="#${targetTabId}"]`);
+    const tabPane = document.querySelector(`#${targetTabId}`);
+
+    if (trigger && tabPane) {
+        document.querySelectorAll('.tab-pane').forEach(pane => {
+            pane.classList.remove('show', 'active');
+        });
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.classList.remove('active');
+        });
+        const tab = new bootstrap.Tab(trigger);
+        tab.show();
+    }
+
+    // Guardar estado al cambiar pestaña
+    const tabs = document.querySelectorAll('#cobradorTabs button[data-bs-toggle="tab"]');
+    tabs.forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function (e) {
+            const tabId = e.target.getAttribute('data-bs-target').replace('#', '');
+            let params = new URLSearchParams(window.location.search);
+            params.set('cobros_page', '1');
+            params.set('devoluciones_page', '1');
+            params.set('pendientes_page', '1');
+            params.set('vencidos_page', '1');
+            if (tabId === 'cobros') params.set('cobros_page', '1');
+            if (tabId === 'devoluciones') params.set('devoluciones_page', '1');
+            if (tabId === 'pendientes') params.set('pendientes_page', '1');
+            if (tabId === 'vencidos') params.set('vencidos_page', '1');
+            history.replaceState(null, '', `?${params.toString()}`);
+        });
+    });
+});
+</script>
+
+{% endblock %}

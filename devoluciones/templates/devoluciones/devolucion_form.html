@@ -1,0 +1,244 @@
+{% extends 'devoluciones/base.html' %}
+
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }}{% endblock %}
+
+<!-- 🔴 DEBUG: Muestra los datos recibidos -->
+<pre style="background:#f8f9fa; padding:10px; margin:10px 0; border:1px solid #ddd; font-size:12px; display:none;">
+DEBUG: documento_inicial = {{ documento_inicial }}
+DEBUG: documento_inicial_data = {{ documento_inicial_data }}
+</pre>
+<!-- 🔴 FIN DEBUG -->
+
+{% block extra_css %}
+<style>
+    #documento-container {
+        position: relative;
+    }
+    #documento-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ccc;
+        border-top: none;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    }
+    .result-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+    }
+    .result-item:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4><i class="fas fa-undo"></i> {{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <!-- Campo de búsqueda -->
+                            <div class="mb-3">
+                                <label for="search-documento" class="form-label">Documento al que se devuelve</label>
+                                <input
+                                    type="text"
+                                    id="search-documento"
+                                    class="form-control"
+                                    placeholder="Buscar documento..."
+                                    value=""
+                                >
+                                <div id="documento-results"></div>
+                                <!-- Campo oculto para el ID -->
+                                <input type="hidden" name="documento" id="documento-id" value="">
+                            </div>
+
+                            {{ form.cobrador|as_crispy_field }}
+                            {{ form.fecha|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.monto|as_crispy_field }}
+                            <!-- ✅ Campo Notas -->
+                            <div class="mb-3">
+                                <label for="{{ form.notas.id_for_label }}" class="form-label">{{ form.notas.label }}</label>
+                                {{ form.notas }}
+                                <small id="notas-counter" class="text-muted d-block text-end mt-1">0/60</small>
+                                {% if form.notas.help_text %}
+                                    <small class="form-text text-muted">{{ form.notas.help_text }}</small>
+                                {% endif %}
+                                {% for error in form.notas.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <!-- Mostrar info del documento seleccionado -->
+                            <div id="documento-info" class="mt-3" style="display: none;">
+                                <strong>Cliente:</strong> <span id="info-cliente"></span><br>
+                                <strong>DNI:</strong> <span id="info-dni"></span><br>
+                                <strong>Monto Total:</strong> S/ <span id="info-total"></span><br>
+                                <strong>Saldo Pendiente:</strong> S/ <span id="info-saldo"></span>
+                            </div>
+
+
+
+
+
+
+                        </div>
+                    </div>
+                    <!-- Campo oculto para next -->
+                    <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}">
+
+                    <div class="d-flex justify-content-between mt-3">
+                        <!-- Botón Volver dinámico -->
+                        {% if request.GET.next %}
+                            <a href="{{ request.GET.next }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Volver
+                            </a>
+                        {% else %}
+                            <a href="{% url 'devoluciones:devolucion_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Volver
+                            </a>
+                        {% endif %}
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Registrar Devolución
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ✅ Script JSON manual -->
+{% if documento_inicial_data %}
+<script type="application/json" id="documento-inicial-data">
+    {{ documento_inicial_data|safe }}
+</script>
+{% else %}
+<script type="application/json" id="documento-inicial-data">
+    null
+</script>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('✅ Devolución: DOM cargado');
+
+    const dataEl = document.getElementById('documento-inicial-data');
+    console.log('🔍 Devolución: Elemento JSON:', dataEl);
+
+    const searchInput = document.getElementById('search-documento');
+    const documentoId = document.getElementById('documento-id');
+    const documentoInfo = document.getElementById('documento-info');
+    const infoCliente = document.getElementById('info-cliente');
+    const infoDni = document.getElementById('info-dni');
+    const infoTotal = document.getElementById('info-total');
+    const infoSaldo = document.getElementById('info-saldo');
+
+    // Cargar documento inicial si existe
+    if (dataEl && dataEl.textContent && dataEl.textContent !== 'null') {
+        try {
+            const doc = JSON.parse(dataEl.textContent);
+            console.log('📄 Devolución: Documento inicial:', doc);
+
+            searchInput.value = `${doc.tipo_display} ${doc.numero_completo} - ${doc.cliente_nombre}`;
+            documentoId.value = doc.id;
+
+            infoCliente.textContent = doc.cliente_nombre;
+            infoDni.textContent = doc.cliente_dni;
+            infoTotal.textContent = doc.monto_total.toFixed(2);
+            infoSaldo.textContent = doc.saldo_pendiente.toFixed(2);
+            documentoInfo.style.display = 'block';
+
+            console.log('✅ Devolución: Documento preseleccionado');
+        } catch (e) {
+            console.error('❌ Devolución: Error al cargar documento inicial:', e);
+        }
+    }
+
+    // Búsqueda dinámica
+    searchInput.addEventListener('input', function () {
+        const query = searchInput.value.trim();
+        if (query.length < 2) {
+            document.getElementById('documento-results').style.display = 'none';
+            return;
+        }
+
+        fetch(`{% url 'documentos:documento_pendiente_autocomplete' %}?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                const resultsBox = document.getElementById('documento-results');
+                resultsBox.innerHTML = '';
+                if (data.results.length === 0) {
+                    const div = document.createElement('div');
+                    div.className = 'result-item disabled';
+                    div.textContent = 'No se encontraron documentos';
+                    resultsBox.appendChild(div);
+                } else {
+                    data.results.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'result-item';
+                        div.textContent = item.text;
+                        div.dataset.id = item.id;
+                        div.dataset.cliente = item.cliente;
+                        div.dataset.dni = item.dni_ruc;
+                        div.dataset.total = item.monto_total;
+                        div.dataset.saldo = item.saldo;
+                        div.addEventListener('click', function () {
+                            searchInput.value = item.text;
+                            documentoId.value = item.id;
+                            resultsBox.style.display = 'none';
+                            infoCliente.textContent = item.cliente;
+                            infoDni.textContent = item.dni_ruc;
+                            infoTotal.textContent = parseFloat(item.monto_total).toFixed(2);
+                            infoSaldo.textContent = parseFloat(item.saldo).toFixed(2);
+                            documentoInfo.style.display = 'block';
+                        });
+                        resultsBox.appendChild(div);
+                    });
+                }
+                resultsBox.style.display = 'block';
+            })
+            .catch(err => console.error('Error:', err));
+    });
+
+    // Ocultar resultados al hacer clic fuera
+    document.addEventListener('click', function (e) {
+        const resultsBox = document.getElementById('documento-results');
+        if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+            resultsBox.style.display = 'none';
+        }
+    });
+
+    // ✅ Contador de caracteres para "notas"
+    const notasInput = document.getElementById('{{ form.notas.id_for_label }}');
+    const counter = document.getElementById('notas-counter');
+    if (notasInput && counter) {
+        counter.textContent = notasInput.value.length + '/60';
+        notasInput.addEventListener('input', function () {
+            counter.textContent = this.value.length + '/60';
+        });
+    }
+
+
+});
+</script>
+{% endblock %}

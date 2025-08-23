@@ -1,0 +1,174 @@
+{% extends 'reportes/base.html' %}
+
+{% block title %}Top 10 Clientes con Mayor Saldo Pendiente{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-exclamation-triangle text-danger"></i> Top 10 Clientes con Mayor Deuda</h2>
+    <a href="{% url 'reportes:exportar_excel' 'top_clientes_pendientes' %}" class="btn btn-success">
+        <i class="fas fa-file-excel"></i> Exportar a Excel
+    </a>
+</div>
+
+<p class="text-muted">
+    <strong>Top 10 clientes</strong> con mayor saldo pendiente en documentos no pagados.
+</p>
+
+{% if top_clientes %}
+    <!-- Vista: Tabla (escritorio) / Tarjetas (móvil) -->
+    <div class="d-none d-md-block">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-danger">
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Total Pendiente</th>
+                        <th>Documentos Pendientes</th>
+                        <th>Vencidos</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for data in top_clientes %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'clientes:cliente_detail' data.cliente.pk %}" class="text-decoration-none">
+                                {{ data.cliente.nombre }}
+                            </a>
+                        </td>
+                        <td class="fw-bold">S/ {{ data.total_pendiente|floatformat:2 }}</td>
+                        <td>{{ data.documentos_pendientes }}</td>
+                        <td>
+                            {% if data.documentos_vencidos > 0 %}
+                                <span class="badge bg-danger">{{ data.documentos_vencidos }}</span>
+                            {% else %}
+                                <span class="badge bg-success">0</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'clientes:cliente_detail' data.cliente.pk %}" class="btn btn-sm btn-info">
+                                <i class="fas fa-user"></i> Ver Cliente
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tarjetas (móvil) -->
+    <div class="d-md-none">
+        <div class="row g-3">
+            {% for data in top_clientes %}
+            <div class="col-12">
+                <div class="card border h-100">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h6 class="mb-0">
+                                    <a href="{% url 'clientes:cliente_detail' data.cliente.pk %}" class="text-decoration-none">
+                                        {{ data.cliente.nombre|truncatechars:25 }}
+                                    </a>
+                                </h6>
+                                <small class="text-muted">
+                                    #{{ forloop.counter }}
+                                </small>
+                            </div>
+                            <span class="badge bg-danger rounded-pill px-3 py-2" style="font-size: 0.85em;">
+                                {{ data.documentos_vencidos }}
+                            </span>
+                        </div>
+
+                        <div class="mb-2">
+                            <strong>Total Pendiente:</strong>
+                            <span class="fw-bold text-danger">S/ {{ data.total_pendiente|floatformat:2 }}</span>
+                        </div>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <small><strong>Documentos:</strong> {{ data.documentos_pendientes }}</small>
+                            </div>
+                            <div class="col-6">
+                                <small><strong>Vencidos:</strong>
+                                    {% if data.documentos_vencidos > 0 %}
+                                        <span class="text-danger">{{ data.documentos_vencidos }}</span>
+                                    {% else %}
+                                        <span class="text-success">0</span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+
+                        <a href="{% url 'clientes:cliente_detail' data.cliente.pk %}" class="btn btn-sm btn-info w-100">
+                            <i class="fas fa-user"></i> Ver Cliente
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-light text-center py-4">
+        <i class="fas fa-smile fa-lg text-muted mb-2"></i><br>
+        No hay clientes con documentos pendientes.
+    </div>
+{% endif %}
+
+<!-- Gráfico de barras -->
+<div class="card mt-4">
+    <div class="card-header bg-primary text-white">
+        <i class="fas fa-chart-bar"></i> Top 10 - Saldo Pendiente
+    </div>
+    <div class="card-body">
+        <canvas id="chartTopClientes" height="100"></canvas>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('chartTopClientes').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: [
+                {% for data in top_clientes %}
+                "{{ data.cliente.nombre|truncatechars:15 }}",
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Saldo Pendiente (S/)',
+                data: [
+                    {% for data in top_clientes %}
+                    {{ data.total_pendiente|floatformat:2 }},
+                    {% endfor %}
+                ],
+                backgroundColor: '#dc3545',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { 
+                        callback: function(value) {
+                            return 'S/ ' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

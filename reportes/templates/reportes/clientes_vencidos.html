@@ -1,0 +1,205 @@
+{% extends 'reportes/base.html' %}
+{% load reportes_filters %}
+
+{% block title %}Clientes con Documentos Vencidos{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-exclamation-triangle text-danger"></i> Clientes con Documentos Vencidos</h2>
+    <div>
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                Filtro: 
+                {% if dias_filtro == '30' %}0–30 días{% elif dias_filtro == '60' %}31–60 días{% elif dias_filtro == '90' %}+60 días{% else %}Todos{% endif %}
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item {% if not dias_filtro %}active{% endif %}" href="?">Todos</a></li>
+                <li><a class="dropdown-item {% if dias_filtro == '30' %}active{% endif %}" href="?dias=30">0–30 días</a></li>
+                <li><a class="dropdown-item {% if dias_filtro == '60' %}active{% endif %}" href="?dias=60">31–60 días</a></li>
+                <li><a class="dropdown-item {% if dias_filtro == '90' %}active{% endif %}" href="?dias=90">Más de 60 días</a></li>
+            </ul>
+        </div>
+        <a href="{% url 'reportes:exportar_excel' 'clientes_vencidos' %}?dias={{ dias_filtro }}"
+           class="btn btn-success">
+            <i class="fas fa-file-excel"></i> Exportar a Excel
+        </a>
+    </div>
+</div>
+
+<!-- Resumen del reporte -->
+{% if clientes_list %}
+<div class="alert alert-danger mb-4">
+    <div class="row text-center">
+        <div class="col-md-3 mb-2">
+            <strong>Total Clientes:</strong> {{ clientes_list|length }}
+        </div>
+        <div class="col-md-3 mb-2">
+            <strong>Total Documentos Vencidos:</strong> {{ clientes_list|sum:"documentos_count" }}
+        </div>
+        <div class="col-md-3 mb-2">
+            <strong>Total Vencido:</strong> S/ {{ clientes_list|sum:"total_vencido"|floatformat:2 }}
+        </div>
+        <div class="col-md-3 mb-2">
+            <strong>Retraso Promedio:</strong> {{ clientes_list|avg:"dias_promedio" }} días
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% for cliente_data in clientes_list %}
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0">
+                <a href="{% url 'clientes:cliente_detail' cliente_data.cliente.pk %}" 
+                   class="text-white text-decoration-none">
+                    {{ cliente_data.cliente.nombre }}
+                </a>
+            </h5>
+            <small>DNI: {{ cliente_data.cliente.dni_ruc }}</small>
+        </div>
+        <div class="text-end">
+            <div><strong>Total Vencido:</strong></div>
+            <div class="h5 mb-0">S/ {{ cliente_data.total_vencido|floatformat:2 }}</div>
+            <small>Promedio: {{ cliente_data.dias_promedio }} días</small>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Vista: Tabla (escritorio) / Tarjetas (móvil) -->
+        <div class="d-none d-md-block">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Documento</th>
+                            <th>Total</th>
+                            <th>Pagado</th>
+                            <th>Devolución</th>
+                            <th>Saldo</th>
+                            <th>Vencimiento</th>
+                            <th>Días</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in cliente_data.documentos %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'documentos:documento_detail' item.doc.pk %}" 
+                                class="text-decoration-none">
+                                    {{ item.doc.get_tipo_display }} {{ item.doc.get_numero_completo }}
+                                </a>
+                            </td>
+                            <td>S/ {{ item.doc.monto_total|floatformat:2 }}</td>
+                            <td>S/ {{ item.doc.monto_pagado|floatformat:2 }}</td>
+                            <td>S/ {{ item.doc.monto_devolucion|floatformat:2 }}</td>
+                            <td class="fw-bold">S/ {{ item.saldo|floatformat:2 }}</td>
+                            <td>{{ item.doc.fecha_vencimiento|date:"d/m/Y" }}</td>
+                            <td>
+                                <span class="badge bg-danger">
+                                    {{ item.dias_retraso }} días
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'documentos:documento_detail' item.doc.pk %}" 
+                                    class="btn btn-info" title="Ver">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if item.saldo > 0 %}
+                                        <a href="{% url 'cobros:cobro_create' %}?documento={{ item.doc.pk }}&next={{ request.get_full_path|urlencode }}"
+                                        class="btn btn-success" title="Pagar">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </a>
+                                    {% else %}
+                                        <button class="btn btn-secondary" disabled title="Pagado">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tarjetas (móvil) -->
+        <div class="d-md-none">
+            {% for item in cliente_data.documentos %}
+            <div class="card border mb-3">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="mb-0">
+                            <a href="{% url 'documentos:documento_detail' item.doc.pk %}" 
+                            class="text-decoration-none">
+                                {{ item.doc.get_tipo_display }} {{ item.doc.get_numero_completo }}
+                            </a>
+                        </h6>
+                        <span class="badge bg-danger rounded-pill px-3 py-2" style="font-size: 0.85em;">
+                            {{ item.dias_retraso }} días
+                        </span>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <small><strong>Total:</strong> S/ {{ item.doc.monto_total|floatformat:2 }}</small><br>
+                            <small><strong>Pagado:</strong> S/ {{ item.doc.monto_pagado|floatformat:2 }}</small>
+                        </div>
+                        <div class="col-6">
+                            <small><strong>Saldo:</strong> <span class="fw-bold">S/ {{ item.saldo|floatformat:2 }}</span></small><br>
+                            <small><strong>Venció:</strong> {{ item.doc.fecha_vencimiento|date:"d/m/Y" }}</small>
+                        </div>
+                    </div>
+
+                    <div class="mt-2">
+                        <div class="btn-group btn-group-sm w-100">
+                            <a href="{% url 'documentos:documento_detail' item.doc.pk %}" 
+                            class="btn btn-info" title="Ver">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {% if item.saldo > 0 %}
+                                <a href="{% url 'cobros:cobro_create' %}?documento={{ item.doc.pk }}&next={{ request.get_full_path|urlencode }}"
+                                class="btn btn-success" title="Pagar">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                </a>
+                            {% else %}
+                                <button class="btn btn-secondary" disabled title="Pagado">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="alert alert-info text-center py-4">
+    <i class="fas fa-check-circle fa-lg mb-2"></i><br>
+    No hay clientes con documentos vencidos.
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card-header a {
+        color: white;
+    }
+    .card-header a:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Optional: para cálculos en el template (si no usas filtro en backend) -->
+<script>
+// Puedes añadir filtros dinámicos o gráficos después
+</script>
+{% endblock %}

@@ -1,0 +1,54 @@
+# cobros/models.py
+from django.db import models
+from documentos.models import Documento
+from cobradores.models import Cobrador
+from django.utils import timezone
+from decimal import Decimal
+
+def localtime_peru():
+    return timezone.localtime(timezone.now())
+
+class Cobro(models.Model):
+    documento = models.ForeignKey(Documento, on_delete=models.CASCADE, verbose_name="Documento")
+    cobrador = models.ForeignKey(Cobrador, on_delete=models.PROTECT, verbose_name="Cobrador")
+    monto = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        verbose_name="Monto Pagado (S/)"
+    )
+    fecha = models.DateTimeField(default=localtime_peru, verbose_name="Fecha del Pago")
+    creado_en = models.DateTimeField(auto_now_add=True)
+    
+    # ✅ Nuevo campo: referencia del pago múltiple
+    referencia = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name="Referencia / N° Operación",
+        help_text="Número de recibo, transferencia, depósito, etc."
+    )
+
+    class Meta:
+        verbose_name = "Cobro"
+        verbose_name_plural = "Cobros"
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f"Pago S/ {self.monto} - {self.documento.get_tipo_display()} {self.documento.get_numero_completo} - {self.fecha.strftime('%d/%m/%Y')}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Recalcular monto_pagado del documento
+        total_cobros = self.documento.cobro_set.aggregate(
+            total=models.Sum('monto')
+        )['total'] or Decimal('0.00')
+        self.documento.monto_pagado = total_cobros
+        self.documento.save(update_fields=['monto_pagado'])
+
+    def delete(self, *args, **kwargs):
+        documento = self.documento
+        super().delete(*args, **kwargs)
+        total_cobros = documento.cobro_set.aggregate(
+            total=models.Sum('monto')
+        )['total'] or Decimal('0.00')
+        documento.monto_pagado = total_cobros
+        documento.save(update_fields=['monto_pagado'])

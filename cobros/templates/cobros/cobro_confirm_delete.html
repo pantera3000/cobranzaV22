@@ -1,0 +1,21 @@
+<div class="modal fade" id="deleteCobroModal{{ cobro.pk }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Eliminar Pago</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Eliminar pago de <strong>S/ {{ cobro.monto|floatformat:2 }}</strong>?</p>
+                <p><small>Documento: {{ cobro.documento.get_tipo_display }} {{ cobro.documento.get_numero_completo }}</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{% url 'cobros:cobro_delete' cobro.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
