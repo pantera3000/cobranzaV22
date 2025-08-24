@@ -51,7 +51,7 @@ def devolucion_list(request):
     # ✅ Calcular total devuelto
     total_devuelto = devoluciones.aggregate(total=Sum('monto'))['total'] or 0
 
-    paginator = Paginator(devoluciones, 10)
+    paginator = Paginator(devoluciones, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 

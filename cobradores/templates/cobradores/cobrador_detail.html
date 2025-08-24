@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load custom_filters %} 
+{% load dict_extras %}
 
 {% block title %}Detalle de {{ cobrador.nombre }}{% endblock %}
 
@@ -107,40 +108,209 @@
 
 <!-- Pestañas -->
 <!-- Pestañas -->
+<!-- Pestañas con colores -->
 <ul class="nav nav-tabs mb-4" id="cobradorTabs" role="tablist">
+    <!-- Documentos -->
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="pagos-tab" data-bs-toggle="tab" data-bs-target="#pagos" type="button">
-            <i class="fas fa-money-bill-wave"></i> 
-            Pagos Realizados 
-            <span class="badge bg-primary rounded-pill ms-1">{{ cobros_page_obj.paginator.count }}</span>
+        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2" 
+                id="documentos-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#documentos" 
+                type="button" 
+                role="tab">
+            <i class="fas fa-file-invoice text-info"></i>
+            <span class="text-info">Documentos Asignados</span>
+            <span class="badge bg-info text-white rounded-pill ms-1" style="font-size: 0.85em;">
+                {{ documentos_page_obj.paginator.count }}
+            </span>
         </button>
     </li>
+
+
+
+    <!-- Pagos -->
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="devoluciones-tab" data-bs-toggle="tab" data-bs-target="#devoluciones" type="button">
-            <i class="fas fa-undo"></i> 
-            Devoluciones 
-            <span class="badge bg-primary rounded-pill ms-1">{{ devoluciones_page_obj.paginator.count }}</span>
+        <button class="nav-link active d-flex align-items-center gap-2 px-3 py-2"
+                id="pagos-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#pagos"
+                type="button"
+                role="tab">
+            <i class="fas fa-money-bill-wave text-success"></i>
+            <span class="text-success">Pagos Realizados</span>
+            <span class="badge bg-success text-white rounded-pill ms-1" style="font-size: 0.85em;">
+                {{ cobros_page_obj.paginator.count }}
+            </span>
         </button>
     </li>
+
+    <!-- Devoluciones -->
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="pendientes-tab" data-bs-toggle="tab" data-bs-target="#pendientes" type="button">
-            <i class="fas fa-clock"></i> 
-            Pendientes 
-            <span class="badge bg-primary rounded-pill ms-1">{{ pendientes_page_obj.paginator.count }}</span>
+        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2"
+                id="devoluciones-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#devoluciones"
+                type="button"
+                role="tab">
+            <i class="fas fa-undo text-danger"></i>
+            <span class="text-danger">Devoluciones</span>
+            <span class="badge bg-danger text-white rounded-pill ms-1" style="font-size: 0.85em;">
+                {{ devoluciones_page_obj.paginator.count }}
+            </span>
         </button>
     </li>
+
+    <!-- Pendientes -->
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="vencidos-tab" data-bs-toggle="tab" data-bs-target="#vencidos" type="button">
-            <i class="fas fa-exclamation-triangle"></i> 
-            Vencidos 
-            <span class="badge bg-primary rounded-pill ms-1">{{ vencidos_page_obj.paginator.count }}</span>
+        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2"
+                id="pendientes-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#pendientes"
+                type="button"
+                role="tab">
+            <i class="fas fa-clock text-primary"></i>
+            <span class="text-primary">Pendientes</span>
+            <span class="badge bg-primary text-white rounded-pill ms-1" style="font-size: 0.85em;">
+                {{ pendientes_page_obj.paginator.count }}
+            </span>
+        </button>
+    </li>
+
+    <!-- Vencidos -->
+    <li class="nav-item" role="presentation">
+        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2"
+                id="vencidos-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#vencidos"
+                type="button"
+                role="tab">
+            <i class="fas fa-exclamation-triangle text-warning"></i>
+            <span class="text-dark">Vencidos</span>
+            <span class="badge bg-warning text-dark rounded-pill ms-1" style="font-size: 0.85em;">
+                {{ vencidos_page_obj.paginator.count }}
+            </span>
         </button>
     </li>
 </ul>
 
 <div class="tab-content" id="cobradorTabsContent">
 
-    <!-- Pagos -->
+    
+    <!-- Documentos Asignados -->
+    <!-- Documentos Asignados -->
+    <div class="tab-pane fade" id="documentos" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-file-invoice text-info"></i> 
+                    Documentos Asignados 
+                    <span class="badge bg-info text-white rounded-pill">{{ documentos_page_obj.paginator.count }}</span>
+                </h5>
+                {% if documentos_page_obj %}
+                    <!-- Escritorio: Tabla -->
+                    <div class="d-none d-md-block">
+                        <div class="table-responsive">
+                            <table class="table table-striped mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Documento</th>
+                                        <th>Cliente</th>
+                                        <th>Total</th>
+                                        <th>Estado</th>
+                                        <th>Emisión</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for doc in documentos_page_obj %}
+                                    <tr>
+                                        <!-- ✅ Documento clickeable -->
+                                        <td>
+                                            <a href="{% url 'documentos:documento_detail' doc.pk %}" 
+                                            class="text-decoration-none">
+                                                <strong>{{ doc.get_tipo_display }}</strong><br>
+                                                {{ doc.get_numero_completo }}
+                                            </a>
+                                        </td>
+                                        <!-- ✅ Cliente clickeable -->
+                                        <td>
+                                            <a href="{% url 'clientes:cliente_detail' doc.cliente.pk %}" 
+                                            class="text-decoration-none">
+                                                {{ doc.cliente.nombre }}
+                                            </a>
+                                        </td>
+                                        <td>S/ {{ doc.monto_total|floatformat:2 }}</td>
+                                        <td>
+                                            {% if doc.get_estado == 'pagado' %}
+                                                <span class="badge bg-success">Pagado</span>
+                                            {% elif doc.get_estado == 'vencido' %}
+                                                <span class="badge bg-danger">Vencido</span>
+                                            {% elif doc.get_estado == 'pago_parcial' %}
+                                                <span class="badge bg-info text-white">Parcial</span>
+                                            {% else %}
+                                                <span class="badge bg-warning text-dark">Pendiente</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ doc.fecha_emision|date:"d/m/Y H:i" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Móvil: Tarjetas -->
+                    <div class="d-md-none">
+                        {% for doc in documentos_page_obj %}
+                        <div class="card border mb-3">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <!-- ✅ Documento clickeable en móvil -->
+                                        <h6 class="mb-1">
+                                            <a href="{% url 'documentos:documento_detail' doc.pk %}" 
+                                            class="text-decoration-none">
+                                                <strong>{{ doc.get_tipo_display }}</strong>
+                                                {{ doc.get_numero_completo }}
+                                            </a>
+                                        </h6>
+                                        <!-- ✅ Cliente clickeable en móvil -->
+                                        <p class="mb-1 small text-muted">
+                                            <a href="{% url 'clientes:cliente_detail' doc.cliente.pk %}" 
+                                            class="text-decoration-none">
+                                                {{ doc.cliente.nombre }}
+                                            </a>
+                                        </p>
+                                    </div>
+                                    <span class="badge bg-info text-white rounded-pill px-3 py-2">{{ doc.get_estado_display }}</span>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <small><strong>Total:</strong> S/ {{ doc.monto_total|floatformat:2 }}</small>
+                                    </div>
+                                    <div class="col-6">
+                                        <small><strong>Emisión:</strong> {{ doc.fecha_emision|date:"d/m" }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Paginación -->
+                    {% include 'partials/pagination.html' with page_obj=documentos_page_obj page_param='documentos_page' %}
+                {% else %}
+                    <div class="alert alert-light text-center py-4">
+                        <i class="fas fa-file-invoice fa-lg text-muted mb-2"></i><br>
+                        <small>No hay documentos asignados en este periodo.</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+
+
+
     <!-- Pagos -->
     <div class="tab-pane fade show active" id="pagos" role="tabpanel">
         <div class="card">
@@ -183,7 +353,7 @@
                                             </a>
                                         </td>
                                         <td class="text-success">S/ {{ cobro.monto|floatformat:2 }}</td>
-                                        <td>
+                                        <!-- <td>
                                             {% if cobro.referencia %}
                                                 <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
                                                 class="badge bg-info text-white text-decoration-none">
@@ -192,7 +362,25 @@
                                             {% else %}
                                                 <span class="text-muted">–</span>
                                             {% endif %}
+                                        </td> -->
+                                        <td>
+                                            {% if cobro.referencia %}
+                                                <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
+                                                class="d-inline-flex align-items-center gap-2 text-decoration-none">
+                                                    <span class="badge bg-primary text-white px-3 py-1" 
+                                                        style="font-size: 0.85em; border-radius: 20px; font-weight: 500;">
+                                                        {{ cobro.referencia }}
+                                                    </span>
+                                                    <span class="badge bg-light text-primary border border-primary px-2 py-1" 
+                                                        style="font-size: 0.75em; border-radius: 12px;">
+                                                        {{ referencia_count|get_item:cobro.referencia }} doc
+                                                    </span>
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">–</span>
+                                            {% endif %}
                                         </td>
+
 
                                         <!-- En el <tr> -->
                                         <td>
@@ -240,7 +428,7 @@
                                     <div class="col-6">
                                         <small><strong>Fecha:</strong> {{ cobro.fecha|date:"d/m/Y H:i" }}</small>
                                     </div>
-                                    {% if cobro.referencia %}
+                                    <!-- {% if cobro.referencia %}
                                     <div class="col-12">
                                         <small>
                                             <strong>Referencia:</strong> 
@@ -250,7 +438,30 @@
                                             </a>
                                         </small>
                                     </div>
+                                    {% endif %} -->
+
+                                    {% if cobro.referencia %}
+                                        <div class="col-12">
+                                            <small>
+                                                <strong>Referencia:</strong>
+                                                <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
+                                                class="d-inline-flex align-items-center gap-2 text-decoration-none">
+                                                    <span class="badge bg-primary text-white px-3 py-1" 
+                                                        style="font-size: 0.85em; border-radius: 20px; font-weight: 500;">
+                                                        {{ cobro.referencia }}
+                                                    </span>
+                                                    <span class="badge bg-light text-primary border border-primary px-2 py-1" 
+                                                        style="font-size: 0.75em; border-radius: 12px;">
+                                                        {{ referencia_count|get_item:cobro.referencia }} doc
+                                                    </span>
+                                                </a>
+                                            </small>
+                                        </div>
                                     {% endif %}
+
+
+
+
 
                                     <!-- ✅ Notas (móvil) -->
                                     {% if cobro.notas %}
@@ -282,6 +493,7 @@
     </div>
 
     <!-- Devoluciones -->
+    <!-- Devoluciones -->
     <div class="tab-pane fade" id="devoluciones" role="tabpanel">
         <div class="card">
             <div class="card-body">
@@ -300,6 +512,7 @@
                                         <th>Documento</th>
                                         <th>Cliente</th>
                                         <th>Monto</th>
+                                        <th>Notas</th>  <!-- ✅ Nueva columna -->
                                         <th>Fecha</th>
                                     </tr>
                                 </thead>
@@ -308,17 +521,24 @@
                                     <tr>
                                         <td>
                                             <a href="{% url 'documentos:documento_detail' dev.documento.pk %}" 
-                                               class="text-decoration-none">
+                                            class="text-decoration-none">
                                                 {{ dev.documento.get_tipo_display }} {{ dev.documento.get_numero_completo }}
                                             </a>
                                         </td>
                                         <td>
                                             <a href="{% url 'clientes:cliente_detail' dev.documento.cliente.pk %}" 
-                                               class="text-decoration-none">
+                                            class="text-decoration-none">
                                                 {{ dev.documento.cliente.nombre|truncatechars:20 }}
                                             </a>
                                         </td>
-                                        <td class="text-warning">S/ {{ dev.monto|floatformat:2 }}</td>
+                                        <td class="text-danger fw-bold">S/ {{ dev.monto|floatformat:2 }}</td>
+                                        <td>
+                                            {% if dev.notas %}
+                                                <small class="text-muted">{{ dev.notas|linebreaksbr|truncatechars:60 }}</small>
+                                            {% else %}
+                                                <span class="text-muted">–</span>
+                                            {% endif %}
+                                        </td>
                                         <td>{{ dev.fecha|date:"d/m/Y H:i" }}</td>
                                     </tr>
                                     {% endfor %}
@@ -336,13 +556,13 @@
                                     <div>
                                         <h6 class="mb-1">
                                             <a href="{% url 'documentos:documento_detail' dev.documento.pk %}" 
-                                               class="text-decoration-none">
+                                            class="text-decoration-none">
                                                 {{ dev.documento.get_tipo_display }} {{ dev.documento.get_numero_completo }}
                                             </a>
                                         </h6>
                                         <p class="mb-1 small text-muted">
                                             <a href="{% url 'clientes:cliente_detail' dev.documento.cliente.pk %}" 
-                                               class="text-decoration-none">
+                                            class="text-decoration-none">
                                                 {{ dev.documento.cliente.nombre }}
                                             </a>
                                         </p>
@@ -351,11 +571,20 @@
                                 </div>
                                 <div class="row g-2">
                                     <div class="col-6">
-                                        <small><strong>Monto:</strong> <span class="text-warning">S/ {{ dev.monto|floatformat:2 }}</span></small>
+                                        <small><strong>Monto:</strong> <span class="text-danger fw-bold">S/ {{ dev.monto|floatformat:2 }}</span></small>
                                     </div>
                                     <div class="col-6">
                                         <small><strong>Fecha:</strong> {{ dev.fecha|date:"d/m/Y H:i" }}</small>
                                     </div>
+                                    <!-- ✅ Notas (móvil) -->
+                                    {% if dev.notas %}
+                                        <div class="col-12">
+                                            <small>
+                                                <strong>Notas:</strong> 
+                                                <span class="text-muted">{{ dev.notas|truncatechars:60 }}</span>
+                                            </small>
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>

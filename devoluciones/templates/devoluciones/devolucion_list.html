@@ -115,7 +115,7 @@
         <div class="alert alert-warning d-flex justify-content-between align-items-center mb-3">
             <div>
                 <strong>Total devuelto:</strong> 
-                <span class="fw-bold">S/ {{ total_devuelto|floatformat:2 }}</span>
+                <span class="text-danger fw-bold">S/ {{ total_devuelto|floatformat:2 }}</span>
             </div>
             <small class="text-dark">
                 {{ page_obj.paginator.count }} devolución{{ page_obj.paginator.count|pluralize }}
@@ -155,7 +155,7 @@
                                     {{ dev.documento.cliente.nombre }}
                                 </a>
                             </td>
-                            <td><strong>S/ {{ dev.monto|floatformat:2 }}</strong></td>
+                            <td><strong class="text-danger fw-bold">S/ {{ dev.monto|floatformat:2 }}</strong></td>
 
                             <td>
                                 {% if dev.notas %}
@@ -222,7 +222,7 @@
 
                                 <div class="mb-2">
                                     <strong>Monto:</strong> 
-                                    <span class="fw-bold">S/ {{ dev.monto|floatformat:2 }}</span>
+                                    <span class="text-danger fw-bold">S/ {{ dev.monto|floatformat:2 }}</span>
                                 </div>
 
                                 <!-- ✅ Cobrador clickeable en móvil -->

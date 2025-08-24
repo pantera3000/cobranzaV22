@@ -1,4 +1,6 @@
 {% extends 'cobros/base.html' %}
+{% load dict_extras %}  <!-- ✅ Asegúrate de tener esto -->
+
 
 {% block title %}Listado de Cobros{% endblock %}
 
@@ -194,10 +196,16 @@
                             </td>
                             <td>
                                 {% if cobro.referencia %}
-                                    <!-- ✅ Referencia clickeable -->
                                     <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
-                                       class="badge bg-info text-white text-decoration-none">
-                                        {{ cobro.referencia }}
+                                    class="d-inline-flex align-items-center gap-2 text-decoration-none">
+                                        <span class="badge bg-primary text-white px-3 py-1" 
+                                            style="font-size: 0.85em; border-radius: 20px; font-weight: 500;">
+                                            {{ cobro.referencia }}
+                                        </span>
+                                        <span class="badge bg-light text-primary border border-primary px-2 py-1" 
+                                            style="font-size: 0.75em; border-radius: 12px;">
+                                            {{ referencia_count|get_item:cobro.referencia }} doc
+                                        </span>
                                     </a>
                                 {% else %}
                                     <span class="text-muted">–</span>
@@ -273,14 +281,20 @@
                                     </a>
                                 </p>
                                 {% if cobro.referencia %}
-                                <p class="mb-1">
-                                    <strong>Referencia:</strong> 
-                                    <!-- ✅ Referencia clickeable en móvil -->
-                                    <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
-                                       class="badge bg-info text-white text-decoration-none">
-                                        {{ cobro.referencia }}
-                                    </a>
-                                </p>
+                                    <p class="mb-1">
+                                        <strong>Referencia:</strong>
+                                        <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
+                                        class="d-inline-flex align-items-center gap-2 text-decoration-none">
+                                            <span class="badge bg-primary text-white px-3 py-1" 
+                                                style="font-size: 0.85em; border-radius: 20px; font-weight: 500;">
+                                                {{ cobro.referencia }}
+                                            </span>
+                                            <span class="badge bg-light text-primary border border-primary px-2 py-1" 
+                                                style="font-size: 0.75em; border-radius: 12px;">
+                                                {{ referencia_count|get_item:cobro.referencia }} doc
+                                            </span>
+                                        </a>
+                                    </p>
                                 {% endif %}
 
                                 <!-- ✅ Notas (móvil) -->

@@ -240,22 +240,19 @@
 
                         
                         
+                        
                         <tr class="
-                            {% with dias=doc.get_dias_restantes %}
-                                {% if dias < 0 %}
-                                    table-danger bg-opacity-25
-                                {% elif dias == 0 %}
-                                    table-warning
-                                {% elif dias <= 7 %}
-                                    table-orange
-                                {% elif dias <= 15 %}
-                                    table-info bg-opacity-25
-                                {% elif dias <= 30 %}
-                                    table-primary bg-opacity-25
-                                {% else %}
-                                    table-success bg-opacity-25
-                                {% endif %}
-                            {% endwith %}
+                            {% if doc.get_estado == 'pagado' %}
+                                table-success bg-opacity-25
+                            {% elif doc.get_estado == 'vencido' %}
+                                table-danger bg-opacity-25
+                            {% elif doc.get_estado == 'pago_parcial' %}
+                                table-info bg-opacity-25
+                            {% elif doc.get_estado == 'pendiente' %}
+                                table-warning bg-opacity-25
+                            {% else %}
+                                table-light
+                            {% endif %}
                         ">
 
 
@@ -300,7 +297,7 @@
                                     {% endif %}
                                 {% endwith %} -->
 
-                                {% with dias=doc.get_dias_restantes %}
+                                <!-- {% with dias=doc.get_dias_restantes %}
                                     {% if dias < 0 %}
                                         <span class="badge bg-danger rounded-pill px-3 py-2" style="font-size: 0.85em;">{{ doc.get_dias_display }}</span>
                                     {% elif dias == 0 %}
@@ -314,7 +311,34 @@
                                     {% else %}
                                         <span class="badge bg-success rounded-pill px-3 py-2" style="font-size: 0.85em;">{{ doc.get_dias_display }}</span>
                                     {% endif %}
-                                {% endwith %}
+                                {% endwith %} -->
+
+                            
+                                {% if doc.get_estado == 'pagado' %}
+                                    <span class="badge bg-secondary rounded-pill px-3 py-2" style="font-size: 0.85em;">
+                                        Pagado
+                                    </span>
+                                {% else %}
+                                    {% with dias=doc.get_dias_restantes %}
+                                        {% if dias < 0 %}
+                                            <span class="badge bg-danger rounded-pill px-3 py-2" style="font-size: 0.85em;">{{ doc.get_dias_display }}</span>
+                                        {% elif dias == 0 %}
+                                            <span class="badge bg-warning text-dark rounded-pill px-3 py-2" style="font-size: 0.85em;">Hoy</span>
+                                        {% elif dias <= 7 %}
+                                            <span class="badge bg-orange rounded-pill px-3 py-2" style="font-size: 0.85em;">{{ doc.get_dias_display }}</span>
+                                        {% elif dias <= 15 %}
+                                            <span class="badge bg-info text-dark rounded-pill px-3 py-2" style="font-size: 0.85em;">{{ doc.get_dias_display }}</span>
+                                        {% elif dias <= 30 %}
+                                            <span class="badge bg-primary rounded-pill px-3 py-2" style="font-size: 0.85em;">{{ doc.get_dias_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-success rounded-pill px-3 py-2" style="font-size: 0.85em;">{{ doc.get_dias_display }}</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endif %}
+                            
+
+
+
 
 
 
@@ -370,7 +394,7 @@
                 <div class="row g-3">
                     {% for doc in page_obj %}
                     <div class="col-12">
-                        <div class="card border h-100 
+                        <!-- <div class="card border h-100 
                             {% with dias=doc.get_dias_restantes %}
                                 {% if dias < 0 %}
                                     bg-danger bg-opacity-10
@@ -386,7 +410,22 @@
                                     bg-success bg-opacity-10
                                 {% endif %}
                             {% endwith %}
-                        ">
+                        "> -->
+
+                    <div class="card border h-100 
+                        {% if doc.get_estado == 'pagado' %}
+                            bg-success bg-opacity-10
+                        {% elif doc.get_estado == 'vencido' %}
+                            bg-danger bg-opacity-10
+                        {% elif doc.get_estado == 'pago_parcial' %}
+                            bg-info bg-opacity-10
+                        {% elif doc.get_estado == 'pendiente' %}
+                            bg-warning bg-opacity-10
+                        {% else %}
+                            bg-light
+                        {% endif %}
+                    ">
+
                             <div class="card-body p-3">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <h6 class="mb-0">
@@ -432,21 +471,27 @@
 
                                 <div class="mb-2">
                                     <strong>Días:</strong>
-                                    {% with dias=doc.get_dias_restantes %}
-                                        {% if dias < 0 %}
-                                            <span class="badge bg-danger rounded-pill px-2 py-1" style="font-size: 0.8em;">{{ doc.get_dias_display }}</span>
-                                        {% elif dias == 0 %}
-                                            <span class="badge bg-warning text-dark rounded-pill px-2 py-1" style="font-size: 0.8em;">Hoy</span>
-                                        {% elif dias <= 7 %}
-                                            <span class="badge bg-orange rounded-pill px-2 py-1" style="font-size: 0.8em;">{{ doc.get_dias_display }}</span>
-                                        {% elif dias <= 15 %}
-                                            <span class="badge bg-info text-dark rounded-pill px-2 py-1" style="font-size: 0.8em;">{{ doc.get_dias_display }}</span>
-                                        {% elif dias <= 30 %}
-                                            <span class="badge bg-primary rounded-pill px-2 py-1" style="font-size: 0.8em;">{{ doc.get_dias_display }}</span>
-                                        {% else %}
-                                            <span class="badge bg-success rounded-pill px-2 py-1" style="font-size: 0.8em;">{{ doc.get_dias_display }}</span>
-                                        {% endif %}
-                                    {% endwith %}
+                                    {% if doc.get_estado == 'pagado' %}
+                                        <span class="badge bg-secondary rounded-pill px-3 py-1" style="font-size: 0.8em;">
+                                            Pagado
+                                        </span>
+                                    {% else %}
+                                        {% with dias=doc.get_dias_restantes %}
+                                            {% if dias < 0 %}
+                                                <span class="badge bg-danger rounded-pill px-2 py-1" style="font-size: 0.8em;">{{ doc.get_dias_display }}</span>
+                                            {% elif dias == 0 %}
+                                                <span class="badge bg-warning text-dark rounded-pill px-2 py-1" style="font-size: 0.8em;">Hoy</span>
+                                            {% elif dias <= 7 %}
+                                                <span class="badge bg-orange rounded-pill px-2 py-1" style="font-size: 0.8em;">{{ doc.get_dias_display }}</span>
+                                            {% elif dias <= 15 %}
+                                                <span class="badge bg-info text-dark rounded-pill px-2 py-1" style="font-size: 0.8em;">{{ doc.get_dias_display }}</span>
+                                            {% elif dias <= 30 %}
+                                                <span class="badge bg-primary rounded-pill px-2 py-1" style="font-size: 0.8em;">{{ doc.get_dias_display }}</span>
+                                            {% else %}
+                                                <span class="badge bg-success rounded-pill px-2 py-1" style="font-size: 0.8em;">{{ doc.get_dias_display }}</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endif %}
                                 </div>
 
                                 

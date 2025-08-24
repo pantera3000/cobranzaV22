@@ -174,8 +174,28 @@ def cobro_list(request):
     # Calcular total cobrado
     total_cobrado = cobros.aggregate(total=Sum('monto'))['total'] or 0
 
+
+
+
+
+    # ✅ Calcular cuántos documentos tiene cada referencia
+    referencia_count = {}
+    for cobro in cobros:
+        ref = cobro.referencia
+        if ref:
+            if ref not in referencia_count:
+                referencia_count[ref] = 0
+            referencia_count[ref] += 1
+
+
+
+
+
+
+
+
     # Paginación
-    paginator = Paginator(cobros, 10)
+    paginator = Paginator(cobros, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -212,6 +232,7 @@ def cobro_list(request):
         'total_cobrado': total_cobrado,
         'año_actual': año_actual,
         'año_pasado': año_pasado,
+        'referencia_count': referencia_count,  # ✅ Añadido
     }
 
     return render(request, 'cobros/cobro_list.html', context)
@@ -471,17 +492,28 @@ def buscar_por_referencia(request):
     query = request.GET.get('q', '')
     pagos = []
     total_monto = 0
+    referencia_count = {}
 
     if query:
         pagos = Cobro.objects.filter(
             referencia__icontains=query
         ).select_related('documento', 'documento__cliente', 'cobrador').order_by('-fecha')
+        
+        # ✅ Calcular total y conteo por referencia
         total_monto = sum(cobro.monto for cobro in pagos)
+        
+        for cobro in pagos:
+            ref = cobro.referencia
+            if ref:
+                if ref not in referencia_count:
+                    referencia_count[ref] = 0
+                referencia_count[ref] += 1
 
     return render(request, 'cobros/buscar_por_referencia.html', {
         'query': query,
         'pagos': pagos,
-        'total_monto': total_monto
+        'total_monto': total_monto,
+        'referencia_count': referencia_count,  # ✅ Añadido
     })
 
 

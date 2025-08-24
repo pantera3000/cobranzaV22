@@ -129,7 +129,7 @@ def cliente_detail(request, pk):
             Q(numero__icontains=docs_query) |
             Q(serie__icontains=docs_query)
         )
-    docs_paginator = Paginator(documentos, 15)
+    docs_paginator = Paginator(documentos, 20)
     docs_page_obj = docs_paginator.get_page(docs_page)
 
     # Filtros y paginación para Cobros (Pagos)
@@ -143,8 +143,12 @@ def cliente_detail(request, pk):
             Q(documento__numero__icontains=cobros_query) |
             Q(monto__icontains=cobros_query)
         )
-    cobros_paginator = Paginator(cobros, 15)
+    cobros_paginator = Paginator(cobros, 20)
     cobros_page_obj = cobros_paginator.get_page(cobros_page)
+
+
+
+    
 
     # Filtros y paginación para Devoluciones
     devoluciones_query = request.GET.get('devoluciones_q')
@@ -157,7 +161,7 @@ def cliente_detail(request, pk):
             Q(documento__numero__icontains=devoluciones_query) |
             Q(monto__icontains=devoluciones_query)
         )
-    devoluciones_paginator = Paginator(devoluciones, 15)
+    devoluciones_paginator = Paginator(devoluciones, 20)
     devoluciones_page_obj = devoluciones_paginator.get_page(devoluciones_page)
 
     # ✅ Cálculos de resumen
@@ -173,6 +177,18 @@ def cliente_detail(request, pk):
     )
     total_vencido = sum(doc.get_saldo_pendiente() for doc in vencidos)
 
+
+    # ✅ Calcular cuántos documentos tiene cada referencia
+    referencia_count = {}
+    for cobro in cobros:
+        ref = cobro.referencia
+        if ref:
+            if ref not in referencia_count:
+                referencia_count[ref] = 0
+            referencia_count[ref] += 1
+
+
+
     return render(request, 'clientes/cliente_detail.html', {
         'cliente': cliente,
         'docs_page_obj': docs_page_obj,
@@ -181,6 +197,7 @@ def cliente_detail(request, pk):
         'docs_query': docs_query,
         'cobros_query': cobros_query,
         'devoluciones_query': devoluciones_query,
+        'referencia_count': referencia_count,  # ✅ Añadido
 
         # ✅ Datos del resumen
         'total_facturado': total_facturado,

@@ -48,10 +48,24 @@
                             {{ form.monto_total|as_crispy_field }}
                         </div>
                     </div>
+
+
+                    <!-- Campo oculto para redirección -->
+                    <input type="hidden" name="next" value="{{ request.GET.next|default:request.META.HTTP_REFERER|default:'documentos:documento_list' }}">
+
+
+
                     <div class="d-flex justify-content-between mt-3">
                         <a href="{% url 'documentos:documento_list' %}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Volver
+                            <i class="fas fa-arrow-left"></i> Ir a la lista de documentos
                         </a>
+
+                        <!-- ✅ Botón: Volver atrás -->
+                        <button type="button" class="btn btn-outline-secondary me-2" onclick="window.history.back();">
+                            <i class="fas fa-arrow-left"></i> Volver Atras
+                        </button>
+
+
                         <button type="submit" class="btn btn-success">
                             <i class="fas fa-save"></i> Guardar
                         </button>

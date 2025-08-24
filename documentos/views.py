@@ -216,7 +216,15 @@ def documento_create(request):
             )
 
             messages.success(request, f'Documento {documento.get_numero_completo()} creado exitosamente.')
+            # return redirect('documentos:documento_list')
+
+            # ✅ Redirigir a 'next' si existe
+            next_url = request.POST.get('next')
+            if next_url:
+                return redirect(next_url)
             return redirect('documentos:documento_list')
+
+
         else:
             messages.error(request, 'Por favor corrige los errores.')
     else:
@@ -245,7 +253,16 @@ def documento_update(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, 'Documento actualizado exitosamente.')
+
+            # return redirect('documentos:documento_list')
+
+            # ✅ Redirigir a 'next' si existe
+            next_url = request.POST.get('next')
+            if next_url:
+                return redirect(next_url)
             return redirect('documentos:documento_list')
+
+
     else:
         form = DocumentoForm(instance=documento)
     return render(request, 'documentos/documento_form.html', {
@@ -364,18 +381,32 @@ def documento_detail(request, pk):
     cobros_list = Cobro.objects.filter(documento=documento).order_by('-fecha')
     devoluciones_list = Devolucion.objects.filter(documento=documento).order_by('-fecha')
 
+    # ✅ Calcular cuántos documentos tiene cada referencia
+    # ✅ Calcular cuántos documentos tiene cada referencia (en todo el sistema)
+    referencias = [cobro.referencia for cobro in cobros_list if cobro.referencia]
+    referencia_count = {}
+    if referencias:
+        # Contar todos los cobros con esas referencias
+        cobros_globales = Cobro.objects.filter(referencia__in=referencias)
+        for cobro in cobros_globales:
+            if cobro.referencia:
+                if cobro.referencia not in referencia_count:
+                    referencia_count[cobro.referencia] = 0
+                referencia_count[cobro.referencia] += 1
+
     # ✅ Paginación para Cobros
-    cobros_paginator = Paginator(cobros_list, 10)  # 10 por página
+    cobros_paginator = Paginator(cobros_list, 20)
     cobros_page_number = request.GET.get('cobros_page')
     cobros_page_obj = cobros_paginator.get_page(cobros_page_number)
 
     # ✅ Paginación para Devoluciones
-    devoluciones_paginator = Paginator(devoluciones_list, 10)
+    devoluciones_paginator = Paginator(devoluciones_list, 20)
     devoluciones_page_number = request.GET.get('devoluciones_page')
     devoluciones_page_obj = devoluciones_paginator.get_page(devoluciones_page_number)
 
     return render(request, 'documentos/documento_detail.html', {
         'documento': documento,
-        'cobros': cobros_page_obj,          # ✅ Cambiado a página actual
-        'devoluciones': devoluciones_page_obj,  # ✅ Cambiado a página actual
+        'cobros': cobros_page_obj,
+        'devoluciones': devoluciones_page_obj,
+        'referencia_count': referencia_count,  # ✅ Añadido
     })

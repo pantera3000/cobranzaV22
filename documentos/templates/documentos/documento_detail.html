@@ -1,5 +1,7 @@
 {% extends 'documentos/base.html' %}
 {% load math_extras %}  <!-- ✅ Añade esta línea -->
+{% load dict_extras %}  <!-- ✅ Añadido -->
+
 {% block title %}Detalle de {{ documento.get_tipo_display }} {{ documento.numero }}{% endblock %}
 
 {% block content %}
@@ -125,21 +127,25 @@
 <div class="progress mb-4" 
      style="height: 45px; border-radius: 22px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
     <div class="progress-bar 
-        {% with dias=documento.get_dias_restantes %}
-            {% if dias < 0 %}
-                bg-danger
-            {% elif dias == 0 %}
-                bg-warning text-dark
-            {% elif dias <= 7 %}
-                bg-orange text-white  <!-- ✅ Forzamos texto blanco -->
-            {% elif dias <= 15 %}
-                bg-info text-white
-            {% elif dias <= 30 %}
-                bg-primary
-            {% else %}
-                bg-success
-            {% endif %}
-        {% endwith %}
+        {% if documento.get_estado == 'pagado' %}
+            bg-success  <!-- ✅ Verde para documentos pagados -->
+        {% else %}
+            {% with dias=documento.get_dias_restantes %}
+                {% if dias < 0 %}
+                    bg-danger
+                {% elif dias == 0 %}
+                    bg-warning text-dark
+                {% elif dias <= 7 %}
+                    bg-orange text-white
+                {% elif dias <= 15 %}
+                    bg-info text-white
+                {% elif dias <= 30 %}
+                    bg-primary
+                {% else %}
+                    bg-success
+                {% endif %}
+            {% endwith %}
+        {% endif %}
         d-flex align-items-center justify-content-center"
         role="progressbar"
         style="width: 100%; font-weight: bold; font-size: 1rem; padding: 0 12px;">
@@ -242,9 +248,9 @@
                     data-bs-target="#devoluciones" 
                     type="button" 
                     role="tab">
-                <i class="fas fa-undo text-warning"></i>
-                <span class="text-warning">Devoluciones</span>
-                <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.85em;">
+                <i class="fas fa-undo text-danger"></i>
+                <span class="text-danger">Devoluciones</span>
+                <span class="badge bg-danger text-white rounded-pill" style="font-size: 0.85em;">
                     {{ devoluciones.paginator.count }}
                 </span>
             </button>
@@ -282,8 +288,15 @@
                                     <td>
                                         {% if cobro.referencia %}
                                             <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
-                                               class="badge bg-info text-white text-decoration-none">
-                                                {{ cobro.referencia }}
+                                            class="d-inline-flex align-items-center gap-2 text-decoration-none">
+                                                <span class="badge bg-primary text-white px-3 py-1" 
+                                                    style="font-size: 0.85em; border-radius: 20px; font-weight: 500;">
+                                                    {{ cobro.referencia }}
+                                                </span>
+                                                <span class="badge bg-light text-primary border border-primary px-2 py-1" 
+                                                    style="font-size: 0.75em; border-radius: 12px;">
+                                                    {{ referencia_count|get_item:cobro.referencia }} doc
+                                                </span>
                                             </a>
                                         {% else %}
                                             <span class="text-muted">–</span>
@@ -332,13 +345,20 @@
                                 </a>
                             </p>
                             {% if cobro.referencia %}
-                            <p class="mb-1">
-                                <strong>Referencia:</strong> 
-                                <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
-                                   class="badge bg-info text-white text-decoration-none">
-                                    {{ cobro.referencia }}
-                                </a>
-                            </p>
+                                <p class="mb-1">
+                                    <strong>Referencia:</strong>
+                                    <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
+                                    class="d-inline-flex align-items-center gap-2 text-decoration-none">
+                                        <span class="badge bg-primary text-white px-3 py-1" 
+                                            style="font-size: 0.85em; border-radius: 20px; font-weight: 500;">
+                                            {{ cobro.referencia }}
+                                        </span>
+                                        <span class="badge bg-light text-primary border border-primary px-2 py-1" 
+                                            style="font-size: 0.75em; border-radius: 12px;">
+                                            {{ referencia_count|get_item:cobro.referencia }} doc
+                                        </span>
+                                    </a>
+                                </p>
                             {% endif %}
                             {% if cobro.notas %}
                             <p class="mb-1">
@@ -397,6 +417,7 @@
         </div>
 
         <!-- Devoluciones -->
+        <!-- Devoluciones -->
         <div class="tab-pane fade" id="devoluciones" role="tabpanel" aria-labelledby="devoluciones-tab">
             {% if devoluciones %}
                 <!-- Escritorio: Tabla -->
@@ -407,6 +428,7 @@
                                 <tr>
                                     <th>Monto</th>
                                     <th>Cobrador</th>
+                                    <th>Notas</th>  <!-- ✅ Nueva columna -->
                                     <th>Fecha</th>
                                     <th>Registrado</th>
                                 </tr>
@@ -414,12 +436,24 @@
                             <tbody>
                                 {% for dev in devoluciones %}
                                 <tr>
-                                    <td><strong>S/ {{ dev.monto|floatformat:2 }}</strong></td>
+                                    <!-- <td><strong>S/ {{ dev.monto|floatformat:2 }}</strong></td> -->
+                                    <td><strong class="text-danger fw-bold">S/ {{ dev.monto|floatformat:2 }}</strong></td>
+
+
+
+
                                     <td>
                                         <a href="{% url 'cobradores:cobrador_detail' dev.cobrador.pk %}" 
-                                           class="text-decoration-none">
+                                        class="text-decoration-none">
                                             {{ dev.cobrador.nombre }}
                                         </a>
+                                    </td>
+                                    <td>
+                                        {% if dev.notas %}
+                                            <small class="text-muted">{{ dev.notas|linebreaksbr|truncatechars:60 }}</small>
+                                        {% else %}
+                                            <span class="text-muted">–</span>
+                                        {% endif %}
                                     </td>
                                     <td>{{ dev.fecha|date:"d/m/Y H:i" }}</td>
                                     <td class="text-muted">{{ dev.creado_en|date:"d/m/Y H:i" }}</td>
@@ -441,7 +475,7 @@
                                         <i class="fas fa-undo"></i> Devolución
                                     </h6>
                                     <p class="mb-1">
-                                        <strong>Monto:</strong> S/ {{ dev.monto|floatformat:2 }}
+                                        <strong>Monto:</strong> <span class="text-danger">S/ {{ dev.monto|floatformat:2 }}</span>
                                     </p>
                                 </div>
                                 <span class="badge bg-warning text-dark rounded-pill px-3 py-2" style="font-size: 0.85em;">
@@ -452,10 +486,19 @@
                             <p class="mb-1">
                                 <strong>Cobrador:</strong> 
                                 <a href="{% url 'cobradores:cobrador_detail' dev.cobrador.pk %}" 
-                                   class="text-decoration-none">
+                                class="text-decoration-none">
                                     {{ dev.cobrador.nombre }}
                                 </a>
                             </p>
+
+                            <!-- ✅ Notas (móvil) -->
+                            {% if dev.notas %}
+                                <p class="mb-1">
+                                    <strong>Notas:</strong> 
+                                    <small class="text-muted">{{ dev.notas|truncatechars:60 }}</small>
+                                </p>
+                            {% endif %}
+
                             <p class="mb-0 text-muted">
                                 <small>Registrado: {{ dev.creado_en|date:"d/m/Y H:i" }}</small>
                             </p>

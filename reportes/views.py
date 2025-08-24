@@ -4,6 +4,7 @@ from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 from django.utils import timezone
 from datetime import timedelta
 from documentos.models import Documento
+from documentos.models import Documento
 from cobros.models import Cobro
 from cobradores.models import Cobrador
 from openpyxl import Workbook
@@ -86,26 +87,96 @@ def reporte_clientes_vencidos(request):
 
 
 
-def reporte_documentos_proximos_vencer(request):
-    """Documentos que vencen en los próximos 7 días"""
-    hoy = timezone.now().date()
-    dentro_de_7_dias = hoy + timedelta(days=7)
+# def reporte_documentos_proximos_vencer(request):
+#     """Documentos que vencen en los próximos 7 días"""
+#     hoy = timezone.now().date()
+#     dentro_de_7_dias = hoy + timedelta(days=7)
 
+#     docs = Documento.objects.filter(
+#         fecha_vencimiento__gte=hoy,
+#         fecha_vencimiento__lte=dentro_de_7_dias,
+#         monto_total__gt=F('monto_pagado') + F('monto_devolucion')  # con saldo pendiente
+#     ).select_related('cliente', 'cobrador').order_by('fecha_vencimiento')
+
+#     # Calcular días restantes
+#     for doc in docs:
+#         doc.dias_restantes = (doc.fecha_vencimiento.date() - hoy).days  # ✅ Corregido
+
+#     return render(request, 'reportes/documentos_proximos_vencer.html', {
+#         'docs': docs,
+#         'hoy': hoy,
+#         'dentro_de_7_dias': dentro_de_7_dias,
+#     })
+
+
+def reporte_documentos_proximos_vencer(request):
+    """Documentos que vencen en los próximos 7 días o en un rango personalizado"""
+    hoy = localtime_peru().date()
+
+    # === Filtros de fecha ===
+    fecha_desde = request.GET.get('fecha_desde')
+    fecha_hasta = request.GET.get('fecha_hasta')
+    filtro_rapido = request.GET.get('filtro')  # 'hoy', '7dias', '15dias', etc.
+
+    # Calcular rangos según filtro rápido
+    if filtro_rapido == 'hoy':
+        fecha_desde = fecha_hasta = hoy.isoformat()
+    elif filtro_rapido == '7dias':
+        fecha_desde = hoy.isoformat()
+        fecha_hasta = (hoy + timedelta(days=7)).isoformat()
+    elif filtro_rapido == '15dias':
+        fecha_desde = hoy.isoformat()
+        fecha_hasta = (hoy + timedelta(days=15)).isoformat()
+    elif filtro_rapido == '30dias':
+        fecha_desde = hoy.isoformat()
+        fecha_hasta = (hoy + timedelta(days=30)).isoformat()
+
+    # Valores por defecto
+    if not fecha_desde:
+        fecha_desde = hoy.isoformat()
+    if not fecha_hasta:
+        fecha_hasta = (hoy + timedelta(days=7)).isoformat()
+
+    # Convertir a datetime
+    from django.utils.dateparse import parse_date
+    fecha_desde_dt = parse_date(fecha_desde) or hoy
+    fecha_hasta_dt = parse_date(fecha_hasta) or (hoy + timedelta(days=7))
+
+    # Filtrar documentos
     docs = Documento.objects.filter(
-        fecha_vencimiento__gte=hoy,
-        fecha_vencimiento__lte=dentro_de_7_dias,
+        fecha_vencimiento__date__gte=fecha_desde_dt,
+        fecha_vencimiento__date__lte=fecha_hasta_dt,
         monto_total__gt=F('monto_pagado') + F('monto_devolucion')  # con saldo pendiente
     ).select_related('cliente', 'cobrador').order_by('fecha_vencimiento')
 
     # Calcular días restantes
     for doc in docs:
-        doc.dias_restantes = (doc.fecha_vencimiento.date() - hoy).days  # ✅ Corregido
+        doc.dias_restantes = (doc.fecha_vencimiento.date() - hoy).days
+
+    # Calcular total del saldo pendiente
+    total_saldo = sum(doc.get_saldo_pendiente() for doc in docs)
+
+    # Paginación
+    paginator = Paginator(docs, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     return render(request, 'reportes/documentos_proximos_vencer.html', {
-        'docs': docs,
+        'page_obj': page_obj,
+        'total_saldo': total_saldo,
         'hoy': hoy,
-        'dentro_de_7_dias': dentro_de_7_dias,
+        'dentro_de_7_dias': fecha_hasta_dt,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+        'filtro_rapido': filtro_rapido,
     })
+
+
+
+
+
+
+
 
 def reporte_top_clientes_pendientes(request):
     """Top 10 clientes con mayor saldo pendiente"""

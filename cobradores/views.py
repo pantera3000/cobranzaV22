@@ -101,11 +101,20 @@ def cobrador_detail(request, pk):
         fecha_hasta = f"{año_pasado}-12-31"
 
     # ✅ Valores por defecto: Este mes
+    # if not fecha_desde and not fecha_hasta and not filtro_rapido:
+    #     primer_dia_mes = hoy.replace(day=1)
+    #     fecha_desde = primer_dia_mes.isoformat()
+    #     fecha_hasta = hoy.isoformat()
+    #     filtro_rapido = 'mes'  # Asegura que el botón "Este mes" esté activo
+
+    # ✅ Valores por defecto: Este año
     if not fecha_desde and not fecha_hasta and not filtro_rapido:
-        primer_dia_mes = hoy.replace(day=1)
-        fecha_desde = primer_dia_mes.isoformat()
+        inicio_año = hoy.replace(month=1, day=1)
+        fecha_desde = inicio_año.isoformat()
         fecha_hasta = hoy.isoformat()
-        filtro_rapido = 'mes'  # Asegura que el botón "Este mes" esté activo
+        filtro_rapido = 'año'  # Asegura que el botón "Este año" esté activo
+
+
     else:
         if not fecha_desde:
             fecha_desde = (hoy - timedelta(days=30)).isoformat()
@@ -155,6 +164,17 @@ def cobrador_detail(request, pk):
     vencidos_page = request.GET.get('vencidos_page')
     vencidos_page_obj = vencidos_paginator.get_page(vencidos_page)
 
+    # ✅ Documentos Asignados (nuevo)
+    documentos_asignados = Documento.objects.filter(
+        cobrador=cobrador,
+        fecha_emision__date__gte=fecha_desde_dt,
+        fecha_emision__date__lte=fecha_hasta_dt
+    ).select_related('cliente').order_by('-fecha_emision')
+    documentos_paginator = Paginator(documentos_asignados, 20)
+    documentos_page = request.GET.get('documentos_page')
+    documentos_page_obj = documentos_paginator.get_page(documentos_page)
+
+
     # Cálculos
     total_cobrado = cobros.aggregate(total=Sum('monto'))['total'] or 0
     total_devuelto = devoluciones.aggregate(total=Sum('monto'))['total'] or 0
@@ -164,12 +184,27 @@ def cobrador_detail(request, pk):
     # ✅ Generar etiqueta del filtro
     filtro_label = get_filtro_label(filtro_rapido, fecha_desde, fecha_hasta)
 
+
+
+
+    # ✅ Calcular cuántos documentos tiene cada referencia
+    referencia_count = {}
+    for cobro in cobros:
+        ref = cobro.referencia
+        if ref:
+            if ref not in referencia_count:
+                referencia_count[ref] = 0
+            referencia_count[ref] += 1
+
+
+
     return render(request, 'cobradores/cobrador_detail.html', {
         'cobrador': cobrador,
         'cobros_page_obj': cobros_page_obj,
         'devoluciones_page_obj': devoluciones_page_obj,
         'pendientes_page_obj': pendientes_page_obj,
         'vencidos_page_obj': vencidos_page_obj,
+        'documentos_page_obj': documentos_page_obj,  # ✅ Añadido
         'total_cobrado': total_cobrado,
         'total_devuelto': total_devuelto,
         'total_pendiente': total_pendiente,
@@ -178,6 +213,7 @@ def cobrador_detail(request, pk):
         'fecha_hasta': fecha_hasta,
         'filtro_rapido': filtro_rapido,
         'filtro_label': filtro_label,
+        'referencia_count': referencia_count,  # ✅ Añadido
     })
 
 
@@ -192,7 +228,7 @@ def cobrador_list(request):
     else:
         cobradores = Cobrador.objects.all()
 
-    paginator = Paginator(cobradores, 10)
+    paginator = Paginator(cobradores, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
