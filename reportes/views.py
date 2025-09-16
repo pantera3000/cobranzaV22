@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField
+from django.db.models import Q, F
 from django.utils import timezone
 from datetime import timedelta
 from documentos.models import Documento
@@ -24,6 +25,7 @@ def reporte_clientes_vencidos(request):
     """Clientes con documentos vencidos y saldo pendiente"""
     hoy = localtime_peru().date()
     dias_filtro = request.GET.get('dias', '')  # '30', '60', '90'
+    query = request.GET.get('q', '')  # ✅ Búsqueda por cliente
 
     # Base: documentos vencidos con saldo pendiente
     docs_vencidos = Documento.objects.filter(
@@ -45,6 +47,13 @@ def reporte_clientes_vencidos(request):
     elif dias_filtro == '90':
         hace_60 = hoy - timedelta(days=60)
         docs_vencidos = docs_vencidos.filter(fecha_vencimiento__date__lt=hace_60)
+
+    # ✅ Filtro por búsqueda
+    if query:
+        docs_vencidos = docs_vencidos.filter(
+            Q(cliente__nombre__icontains=query) |
+            Q(cliente__dni_ruc__icontains=query)
+        )
 
     # Agrupar por cliente
     clientes_data = {}
@@ -78,7 +87,8 @@ def reporte_clientes_vencidos(request):
 
     return render(request, 'reportes/clientes_vencidos.html', {
         'clientes_list': clientes_list,
-        'dias_filtro': dias_filtro
+        'dias_filtro': dias_filtro,
+        'query': query,  # ✅ Pasar la búsqueda al template
     })
 
 
@@ -278,6 +288,7 @@ def reporte_cobradores(request):
     for cobro in cobros:
         total_por_cobrador[cobro.cobrador] += float(cobro.monto)
 
+    # Lista completa para la tabla
     cobradores_data = [
         {'cobrador': c, 'total_cobrado': t}
         for c, t in total_por_cobrador.items()
@@ -285,20 +296,34 @@ def reporte_cobradores(request):
     cobradores_data.sort(key=lambda x: x['total_cobrado'], reverse=True)
     total_general = sum(d['total_cobrado'] for d in cobradores_data)
 
-    # ✅ Convertir datos a JSON para el gráfico
+    # ✅ Paginación para la tabla
+    paginator = Paginator(cobradores_data, 15)  # 20 por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # ✅ Gráfico: solo los Top 10 cobradores
+    cobradores_top_10 = cobradores_data[:10]
     cobradores_json = json.dumps([
         {'nombre': d['cobrador'].nombre, 'total': d['total_cobrado']}
-        for d in cobradores_data
+        for d in cobradores_top_10
     ], cls=DjangoJSONEncoder)
 
     return render(request, 'reportes/cobradores.html', {
-        'cobradores_data': cobradores_data,
+        'page_obj': page_obj,
+        'cobradores_data': page_obj,  # Para compatibilidad con el template
         'total_general': total_general,
         'fecha_desde': fecha_desde,
         'fecha_hasta': fecha_hasta,
         'filtro_rapido': filtro_rapido,
-        'cobradores_json': cobradores_json,  # ✅ Pasamos los datos al template
+        'cobradores_json': cobradores_json,
     })
+
+
+
+
+
+
+
 
 
 def reporte_pagos_parciales(request):

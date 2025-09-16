@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load cobros_filters %}  <!-- ✅ Asegúrate de tener esta línea -->
+
+{% block title %}Detalle Meta - {{ month_name }} {{ year }}{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-bar"></i> Detalle de Cobros - {{ month_name|title }} {{ year }}</h2>
+    <a href="{% url 'cobros:historial_metas' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Volver
+    </a>
+</div>
+
+<!-- Manejo de errores -->
+{% if error %}
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Error:</strong> {{ error }}
+    </div>
+{% else %}
+    <!-- Resumen del mes -->
+    <!-- Resumen del mes -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5><i class="fas fa-chart-bar"></i> Resumen del Mes</h5>
+        </div>
+        <div class="card-body">
+            <div class="row text-center g-3">
+                <!-- Total Cobrado -->
+                <div class="col-md-4 mb-3">
+                    <strong class="text-primary">Total Cobrado</strong><br>
+                    <span class="h4 fw-bold">S/ {{ total_mes|floatformat:2 }}</span>
+                </div>
+
+                <!-- Meta del Mes -->
+                {% if meta %}
+                    <div class="col-md-4 mb-3">
+                        <strong class="text-success">Meta del Mes</strong><br>
+                        <span class="h4 fw-bold">S/ {{ meta.monto_objetivo|floatformat:2 }}</span>
+                    </div>
+
+                    <!-- Estado -->
+                    <div class="col-md-4 mb-3">
+                        <strong>Estado</strong><br>
+                        {% if total_mes >= meta.monto_objetivo %}
+                            <span class="badge bg-success fs-5 px-4 py-2">
+                                <i class="fas fa-check-circle"></i> Cumplida
+                            </span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark fs-5 px-4 py-2">
+                                <i class="fas fa-times-circle"></i> No cumplida
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Fila: Porcentaje faltante (solo si no se cumplió) -->
+                    {% if total_mes < meta.monto_objetivo %}
+                        <div class="col-12 mt-2">
+                            <div class="alert alert-danger mb-0 py-2">
+                                <strong>🎯 Falta: {{ meta.monto_objetivo|sub:total_mes|div:meta.monto_objetivo|mul:100|floatformat:1 }}%</strong>
+                                para cumplir la meta.
+                            </div>
+                        </div>
+                    {% endif %}
+
+                {% else %}
+                    <!-- Sin meta definida -->
+                    <div class="col-12">
+                        <span class="badge bg-secondary fs-5 px-4 py-2">
+                            <i class="fas fa-info-circle"></i> No se ha definido una meta para este mes
+                        </span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Cobros por cobrador -->
+    <!-- Cobros por cobrador -->
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <h5><i class="fas fa-user-shield"></i> Aporte por Cobrador</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Cobrador</th>
+                            <th>Total Cobrado (S/)</th>
+                            <th>% de la Meta</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cobrador in cobros_por_cobrador %}
+                        <tr>
+                            <td>
+                                {% if cobrador.cobrador__id %}
+                                    <a href="{% url 'cobradores:cobrador_detail' cobrador.cobrador__id %}" 
+                                    class="text-decoration-none text-dark">
+                                        <strong>{{ cobrador.cobrador__nombre }}</strong>
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">Sin cobrador</span>
+                                {% endif %}
+                            </td>
+                            <td>S/ {{ cobrador.total|floatformat:2 }}</td>
+                            <td>
+                                {% if meta %}
+                                    {{ cobrador.total|div:meta.monto_objetivo|mul:100|floatformat:1 }}%
+                                {% else %}
+                                    –
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">
+                                No hubo cobros en este mes.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}

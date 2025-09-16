@@ -14,4 +14,40 @@ urlpatterns = [
 
     path('autocomplete-pendiente/', views.documento_pendiente_autocomplete, name='documento_pendiente_autocomplete'),
     path('api/cliente-search/', views.cliente_search_api, name='cliente_search_api'),
+
+
+
+    path('descargar-plantilla/', views.descargar_plantilla_excel, name='descargar_plantilla_excel'),
+    path('importar-excel/', views.importar_documentos_excel, name='importar_documentos_excel'),
+
+
+
+
+    # --- Módulo: Reporte de Despacho ---
+    path('despachos/', views.despacho_lista, name='despacho_lista'),
+    path('despachos/crear/', views.despacho_crear, name='despacho_crear'),
+    path('despachos/<int:despacho_id>/', views.despacho_detalle, name='despacho_detalle'),
+    path('despachos/<int:despacho_id>/agregar/', views.despacho_agregar_documento, name='despacho_agregar_documento'),
+    path('despachos/<int:despacho_id>/registrar-cobro/', views.despacho_registrar_cobro, name='despacho_registrar_cobro'),
+    path('despachos/<int:despacho_id>/cerrar/', views.despacho_cerrar, name='despacho_cerrar'),
+    path('despachos/<int:despacho_id>/reabrir/', views.despacho_reabrir, name='despacho_reabrir'),
+    path('despachos/<int:despacho_id>/eliminar/', views.despacho_eliminar, name='despacho_eliminar'),
+    
+    # --- PDFs ---
+    path('despachos/<int:despacho_id>/pdf/', views.despacho_pdf, name='despacho_pdf'),
+    path('despachos/<int:despacho_id>/liquidacion-pdf/', views.despacho_liquidacion_pdf, name='despacho_liquidacion_pdf'),
+
+
+    path('repartidor/', views.modo_repartidor, name='modo_repartidor'),
+
+
+    # documentos/urls.py
+    path('export/excel/', views.despacho_export_excel, name='despacho_export_excel'),
+    path('export/pdf/', views.despacho_export_pdf, name='despacho_export_pdf'),
+
+    # ... tus otras rutas ...
 ]
+
+
+
+

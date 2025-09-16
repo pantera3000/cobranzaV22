@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Reporte de Planillas de Cierre</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2cm; }
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #000; padding-bottom: 10px; }
+        .header h1 { margin: 0; font-size: 20px; }
+        .filters { margin: 15px 0; padding: 10px; background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; }
+        .filters h4 { margin: 0 0 10px 0; }
+        .filters p { margin: 3px 0; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 12px; }
+        th { background-color: #e9ecef; }
+        .footer { margin-top: 30px; font-size: 10px; text-align: center; color: #555; }
+        .badge { padding: 2px 6px; border-radius: 12px; font-size: 11px; }
+        .bg-success { background-color: #d4edda; color: #155724; }
+        .bg-warning { background-color: #fff3cd; color: #856404; }
+        .bg-danger { background-color: #f8d7da; color: #721c24; }
+        .text-right { text-align: right; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>REPORTE DE PLANILLAS DE CIERRE</h1>
+        <p><strong>Generado el:</strong> {{ request.user.date_joined|date:"d/m/Y H:i" }}</p>
+    </div>
+
+    <!-- Filtros aplicados -->
+    <div class="filters">
+        <h4><i class="fas fa-filter"></i> Filtros Aplicados</h4>
+        <p><strong>Cobrador:</strong> {% if cobrador_filtro %}{{ cobrador_filtro.nombre }}{% else %}Todos{% endif %}</p>
+        <p><strong>Fecha:</strong> {% if fecha_filtro %}{{ fecha_filtro|date:"d/m/Y" }}{% else %}Todas{% endif %}</p>
+        <p><strong>Estado:</strong> {% if estado_filtro %}{{ estado_display }}{% else %}Todos{% endif %}</p>
+    </div>
+
+    <!-- Tabla de planillas -->
+    <table>
+        <thead>
+            <tr>
+                <th>Cobrador</th>
+                <th>Fecha</th>
+                <th>Hora</th> <!-- ✅ -->
+                <th>Total Cobrado (S/)</th>
+                <th>Total Depositado (S/)</th>
+                <th>Pendiente (S/)</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in planillas %}
+            <tr>
+                <td>{{ p.cobrador.nombre }}</td>
+                <td>{{ p.fecha|date:"d/m/Y" }}</td>
+                <td>{{ p.creada_en|date:"H:i" }}</td> <!-- ✅ -->
+                <td class="text-right">{{ p.total_cobrado|floatformat:2 }}</td>
+                <td class="text-right">{{ p.total_depositado|floatformat:2 }}</td>
+                <td class="text-right">{{ p.saldo_pendiente|floatformat:2 }}</td>
+                <td>
+                    <span class="badge 
+                        {% if p.estado == 'completado' %}bg-success
+                        {% elif p.estado == 'parcial' %}bg-warning
+                        {% else %}bg-danger
+                        {% endif %}">
+                        {{ p.get_estado_display }}
+                    </span>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center">No hay planillas registradas.</td></tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr style="font-weight: bold;">
+                <td colspan="2">Totales</td>
+                <td class="text-right">{{ total_cobrado|floatformat:2 }}</td>
+                <td class="text-right">{{ total_depositado|floatformat:2 }}</td>
+                <td class="text-right">{{ total_pendiente|floatformat:2 }}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="footer">
+        <p>Documento generado automáticamente por el sistema de cobranzas.</p>
+    </div>
+</body>
+</html>

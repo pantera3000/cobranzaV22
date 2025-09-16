@@ -1,6 +1,7 @@
 {% extends 'documentos/base.html' %}
-
+{% load dict_extras %}
 {% load static %}
+
 
 {% load url_filters %}  <!-- 👈 Añade esta línea -->
 
@@ -20,17 +21,44 @@
         <a href="{% url 'documentos:documento_create' %}" class="btn btn-success me-2">
             <i class="fas fa-plus"></i> Nuevo Documento
         </a>
+
+        <!-- ✅ Botón: Carga Masiva con Excel -->
+        <div class="btn-group">
+            <button type="button" class="btn btn-info dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="fas fa-file-excel"></i> Carga Masiva
+            </button>
+            <ul class="dropdown-menu">
+                <li>
+                    <a class="dropdown-item" href="{% url 'documentos:descargar_plantilla_excel' %}">
+                        <i class="fas fa-download text-primary"></i> Descargar Plantilla
+                    </a>
+                </li>
+                <li>
+                    <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#modalSubirExcel">
+                        <i class="fas fa-upload text-success"></i> Subir Excel
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+
+
+
         <div class="btn-group">
             <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
                 <i class="fas fa-download"></i> Exportar
             </button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="{% url 'documentos:documento_export_excel' %}">
-                    <i class="fas fa-file-excel text-success"></i> Exportar a Excel
-                </a></li>
-                <li><a class="dropdown-item" href="{% url 'documentos:documento_export_csv' %}">
+                <!-- ✅ Botón Exportar a Excel con filtros -->
+                <li>
+                    <a class="dropdown-item" 
+                    href="{% url 'documentos:documento_export_excel' %}?{% if query %}q={{ query|urlencode }}&{% endif %}{% if tipo %}tipo={{ tipo }}&{% endif %}{% if cliente_id %}cliente={{ cliente_id }}&{% endif %}{% if estado %}estado={{ estado }}&{% endif %}{% if fecha_emision_desde %}fecha_emision_desde={{ fecha_emision_desde }}&{% endif %}{% if fecha_emision_hasta %}fecha_emision_hasta={{ fecha_hasta }}{% endif %}">
+                        <i class="fas fa-file-excel text-success"></i> Exportar a Excel
+                    </a>
+                </li>
+                <!-- <li><a class="dropdown-item" href="{% url 'documentos:documento_export_csv' %}">
                     <i class="fas fa-file-csv text-primary"></i> Exportar a CSV
-                </a></li>
+                </a></li> -->
             </ul>
         </div>
     </div>
@@ -115,27 +143,54 @@
         </div>
 
         <!-- Botones de atajo -->
+        <!-- Botones de atajo -->
         <div class="col-12">
             <div class="d-flex flex-wrap gap-2 align-items-center">
                 <div class="btn-group btn-group-sm" role="group">
+                    <!-- Hoy -->
+                    <!-- ✅ Botón "Hoy" -->
+                    <!-- ✅ Botón "Hoy" corregido -->
                     <a href="?q={{ query|urlencode }}&tipo={{ tipo }}&cliente={{ cliente_id }}&estado={{ estado }}&fecha_emision_desde={{ today|date:'Y-m-d' }}&fecha_emision_hasta={{ today|date:'Y-m-d' }}"
-                       class="btn btn-outline-info">
+                    class="btn btn-outline-info
+                            {% if fecha_emision_desde == today|date:'Y-m-d' and fecha_emision_hasta == today|date:'Y-m-d' %}
+                                active btn-info text-white
+                            {% endif %}">
                         Hoy
                     </a>
+
+                    <!-- Este mes -->
                     <a href="?q={{ query|urlencode }}&tipo={{ tipo }}&cliente={{ cliente_id }}&estado={{ estado }}&fecha_emision_desde={{ mes_inicio|date:'Y-m-d' }}&fecha_emision_hasta={{ mes_fin|date:'Y-m-d' }}"
-                       class="btn btn-outline-info">
+                    class="btn btn-outline-info
+                            {% if fecha_emision_desde == mes_inicio|date:'Y-m-d' and fecha_emision_hasta == mes_fin|date:'Y-m-d' %}
+                                active btn-info text-white
+                            {% endif %}">
                         Este mes
                     </a>
+
+                    <!-- Mes pasado -->
                     <a href="?q={{ query|urlencode }}&tipo={{ tipo }}&cliente={{ cliente_id }}&estado={{ estado }}&fecha_emision_desde={{ mes_pasado_inicio|date:'Y-m-d' }}&fecha_emision_hasta={{ mes_pasado_fin|date:'Y-m-d' }}"
-                       class="btn btn-outline-warning">
+                    class="btn btn-outline-warning
+                            {% if fecha_emision_desde == mes_pasado_inicio|date:'Y-m-d' and fecha_emision_hasta == mes_pasado_fin|date:'Y-m-d' %}
+                                active btn-warning text-dark
+                            {% endif %}">
                         Mes pasado
                     </a>
+
+                    <!-- Este año -->
                     <a href="?q={{ query|urlencode }}&tipo={{ tipo }}&cliente={{ cliente_id }}&estado={{ estado }}&fecha_emision_desde={{ año_actual }}-01-01&fecha_emision_hasta={{ año_actual }}-12-31"
-                       class="btn btn-outline-success">
+                    class="btn btn-outline-success
+                            {% if fecha_emision_desde == año_actual|stringformat:'s' %}-01-01' and fecha_emision_hasta == año_actual|stringformat:'s' %}-12-31' %}
+                                active btn-success text-white
+                            {% endif %}">
                         Este año ({{ año_actual }})
                     </a>
+
+                    <!-- Año pasado -->
                     <a href="?q={{ query|urlencode }}&tipo={{ tipo }}&cliente={{ cliente_id }}&estado={{ estado }}&fecha_emision_desde={{ año_pasado }}-01-01&fecha_emision_hasta={{ año_pasado }}-12-31"
-                       class="btn btn-outline-secondary">
+                    class="btn btn-outline-secondary
+                            {% if fecha_emision_desde == año_pasado|stringformat:'s' %}-01-01' and fecha_emision_hasta == año_pasado|stringformat:'s' %}-12-31' %}
+                                active btn-secondary text-white
+                            {% endif %}">
                         Año pasado ({{ año_pasado }})
                     </a>
                 </div>
@@ -158,6 +213,54 @@
         </span>
     </div>
 </div> -->
+
+
+<!-- ✅ Resumen de filtros activos -->
+<!-- ✅ Resumen de filtros activos -->
+{% if query or tipo or cliente_id or estado or fecha_emision_desde or fecha_emision_hasta %}
+<div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <i class="fas fa-filter"></i>
+        <strong>Filtro activo:</strong>
+        {% if query %}
+            <span class="badge bg-primary me-1">Buscar: "{{ query }}"</span>
+        {% endif %}
+        {% if tipo %}
+            <span class="badge bg-info me-1">{{ tipo|title }}</span>
+        {% endif %}
+        {% if cliente_id %}
+            {% for cliente in clientes %}
+                {% if cliente.id|stringformat:"s" == cliente_id %}
+                    <span class="badge bg-success me-1">Cliente: {{ cliente.nombre }}</span>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        {% if estado %}
+            <span class="badge bg-warning me-1">
+                {% if estado == 'pagado' %}Pagado
+                {% elif estado == 'pendiente' %}Pendiente
+                {% elif estado == 'pago_parcial' %}Pago Parcial
+                {% elif estado == 'vencido' %}Vencido
+                {% endif %}
+            </span>
+        {% endif %}
+        {% if fecha_emision_desde or fecha_emision_hasta %}
+            <span class="badge bg-secondary me-1">
+                Fecha: 
+                {% if fecha_emision_desde %}{{ fecha_emision_desde|date:"d/m" }}{% else %}Inicio{% endif %}
+                -
+                {% if fecha_emision_hasta %}{{ fecha_emision_hasta|date:"d/m" }}{% else %}Hoy{% endif %}
+            </span>
+        {% endif %}
+    </div>
+    <a href="{% url 'documentos:documento_list' %}" class="btn btn-sm btn-outline-info">
+        <i class="fas fa-times"></i> Limpiar filtros
+    </a>
+</div>
+{% endif %}
+
+
+
 
 <!-- Tabla -->
 <!-- Vista: Tabla (escritorio) / Tarjetas (móvil) -->
@@ -229,6 +332,7 @@
                             <th>Pagado</th>
                             <th>Devolución</th> 
                             <th>Saldo</th>
+                            <th>Fecha</th>  <!-- ✅ Nueva columna -->
                             <th>Estado</th>
                             <th>Días</th>
                             <th>Acciones</th>
@@ -269,6 +373,7 @@
                             <td>S/ {{ doc.monto_pagado|floatformat:2 }}</td>
                             <td>S/ {{ doc.monto_devolucion|floatformat:2 }}</td>
                             <td>S/ {{ doc.get_saldo_pendiente|floatformat:2 }}</td>
+                            <td>{{ doc.fecha_emision|date:"d/m/Y" }}</td>
                             <td>
                                 {% if doc.get_estado == 'pagado' %}
                                     <span class="badge bg-success">Pagado</span>
@@ -468,6 +573,10 @@
                                 <p class="mb-1">
                                     <strong>Saldo:</strong> S/ {{ doc.get_saldo_pendiente|floatformat:2 }}
                                 </p>
+                                <p class="mb-1">
+                                    <strong>Fecha:</strong> {{ doc.fecha_emision|date:"d/m/Y" }}
+                                </p>
+
 
                                 <div class="mb-2">
                                     <strong>Días:</strong>
@@ -618,5 +727,40 @@
     </style>
     {% endblock %}
 </div>
+
+
+<!-- ✅ Modal: Subir Excel -->
+<div class="modal fade" id="modalSubirExcel" tabindex="-1" aria-labelledby="modalSubirExcelLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" enctype="multipart/form-data" action="{% url 'documentos:importar_documentos_excel' %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalSubirExcelLabel">
+                        <i class="fas fa-file-excel text-success"></i> Importar Documentos desde Excel
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Sube un archivo Excel con los documentos a importar. Usa la plantilla descargable para asegurar el formato correcto.</p>
+                    <div class="mb-3">
+                        <label for="archivo_excel" class="form-label">Archivo Excel (.xlsx)</label>
+                        <input type="file" name="archivo_excel" class="form-control" accept=".xlsx" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check"></i> Importar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+
 
 {% endblock %}

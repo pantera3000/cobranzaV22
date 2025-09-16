@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-5o)29+o9e0tislu0ye&c)-)$3xi_2$x%i77vv^8ax%y459&y*('
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['tu-usuario.pythonanywhere.com', 'localhost', '127.0.0.1']
 
@@ -78,6 +78,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'cobros.context_processors.meta_mensual',  # ✅ Añade esta línea
+                # 'cobros.context_processors.menu_context',  # ← Esta es la nueva
             ],
         },
     },

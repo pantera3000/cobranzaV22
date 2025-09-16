@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modo Repartidor</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { 
+            background-color: #f8f9fa; 
+            padding-top: 20px;
+        }
+        .brand-header {
+            background-color: #d9534f;
+            color: white;
+            text-align: center;
+            padding: 15px 0;
+            font-weight: bold;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+        }
+        .card { border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        footer { margin-top: 50px; padding: 10px 0; background-color: #343a40; color: white; text-align: center; }
+    </style>
+</head>
+<body>
+    <!-- Encabezado personalizado -->
+    <div class="brand-header">
+        <i class="fas fa-truck"></i>
+        <span>Modo Repartidor - {{ user.get_full_name|default:user.username }}</span>
+    </div>
+
+    <div class="container">
+
+        <!-- Acciones rápidas -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <a href="{% url 'documentos:despacho_lista' %}" class="text-decoration-none">
+                    <div class="card bg-primary text-white text-center p-3">
+                        <i class="fas fa-list fa-2x mb-2"></i>
+                        <h5>Mis Reportes</h5>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="{% url 'documentos:despacho_crear' %}" class="text-decoration-none">
+                    <div class="card bg-success text-white text-center p-3">
+                        <i class="fas fa-plus fa-2x mb-2"></i>
+                        <h5>Nuevo Reporte</h5>
+                    </div>
+                </a>
+            </div>
+            {% if ultimo_despacho %}
+                <div class="col-md-4">
+                    <a href="{% url 'documentos:despacho_pdf' ultimo_despacho.id %}" class="text-decoration-none">
+                        <div class="card bg-info text-white text-center p-3">
+                            <i class="fas fa-print fa-2x mb-2"></i>
+                            <h5>Imprimir Lista</h5>
+                        </div>
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Mensaje de bienvenida -->
+        <div class="alert alert-light text-center">
+            <h5><i class="fas fa-user-shield"></i> Hola, {{ user.get_full_name|default:user.username }}</h5>
+            <p>Desde aquí puedes gestionar tus reportes de reparto, registrar cobros y ver tu liquidación.</p>
+        </div>
+
+        <!-- Enlace directo al último reporte abierto (opcional) -->
+        {% if ultimo_despacho %}
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <h5>🚀 Último Reporte Abierto</h5>
+                    <p>Fecha: {{ ultimo_despacho.fecha|date:"d/m/Y" }}</p>
+                    <div class="btn-group">
+                        <a href="{% url 'documentos:despacho_detalle' ultimo_despacho.id %}" class="btn btn-primary">
+                            <i class="fas fa-money-bill-wave"></i> Registrar Cobros
+                        </a>
+                        <a href="{% url 'documentos:despacho_pdf' ultimo_despacho.id %}" class="btn btn-info">
+                            <i class="fas fa-print"></i> Imprimir
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="text-center mt-4">
+            <form action="{% url 'logout' %}" method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        Sistema de Cobranzas NATIVA
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

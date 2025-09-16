@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Cobranzas{% endblock %}</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        body { 
+            background-color: #f8f9fa; 
+            padding-top: 20px;
+        }
+        .brand-header {
+            background-color: #d9534f;
+            color: white;
+            text-align: center;
+            padding: 15px 0;
+            font-weight: bold;
+            font-size: 1.3rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        footer { 
+            margin-top: 50px; 
+            padding: 10px 0; 
+            background-color: #343a40; 
+            color: white; 
+            text-align: center;
+        }
+        .btn-volver {
+            font-size: 0.9rem;
+            padding: 0.25rem 0.5rem;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Encabezado simple -->
+    <div class="brand-header">
+        <i class="fas fa-truck"></i>
+        <span>Mi Sistema de Cobranzas - Modo Repartidor</span>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="container mt-3">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+
+        <!-- Botón de volver (opcional) -->
+        <div class="text-center my-4">
+            <a href="{% url 'documentos:despacho_lista' %}" class="btn btn-outline-secondary btn-volver">
+                ← Volver a Mis Reportes
+            </a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            Sistema de Cuentas por Cobrar NATIVA
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

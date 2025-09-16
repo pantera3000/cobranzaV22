@@ -1,0 +1,221 @@
+<!-- documentos/templates/documentos/despacho_lista.html -->
+{% extends 'base.html' %}
+{% block title %}Reportes de Reparto{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-truck"></i> Reportes de Reparto</h2>
+    <!-- <a href="{% url 'documentos:despacho_crear' %}" class="btn btn-success">
+        <i class="fas fa-plus"></i> Nuevo Reporte
+    </a> -->
+
+    <!-- Mostrar botón solo si puede crear reportes -->
+    <!-- {% if request.user.is_staff or request.user.is_superuser or es_encargado %}
+        <a href="{% url 'documentos:despacho_crear' %}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Nuevo Reporte
+        </a>
+    {% endif %} -->
+
+
+
+
+    {% if puede_crear_reporte %}
+        <a href="{% url 'documentos:despacho_crear' %}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Nuevo Reporte
+        </a>
+    {% endif %}
+
+
+<!-- Botones de exportación (solo para admin/encargados) -->
+{% if request.user.is_staff or request.user.is_superuser or es_encargado %}
+<div class="d-flex gap-2 mb-3">
+    <!-- Exportar a Excel -->
+    <a href="{% url 'documentos:despacho_export_excel' %}?{{ request.GET.urlencode }}"
+       class="btn btn-outline-success"
+       title="Exportar resultados filtrados a Excel">
+        <i class="fas fa-file-excel"></i> Exportar a Excel
+    </a>
+
+    <!-- Exportar a PDF -->
+    <a href="{% url 'documentos:despacho_export_pdf' %}?{{ request.GET.urlencode }}"
+       class="btn btn-outline-danger"
+       title="Exportar resultados filtrados a PDF">
+        <i class="fas fa-file-pdf"></i> Exportar a PDF
+    </a>
+</div>
+{% endif %}
+
+
+
+
+</div>
+
+<!-- Filtros -->
+<form method="get" class="mb-4">
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label">Fecha</label>
+            <input type="date" name="fecha" class="form-control" value="{{ fecha }}">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Repartidor</label>
+            <select name="repartidor" class="form-control">
+                <option value="">Todos</option>
+                {% for user in repartidores %}
+                    <option value="{{ user.id }}" {% if repartidor_id == user.id|stringformat:"s" %}selected{% endif %}>
+                        {{ user.get_full_name|default:user.username }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Estado</label>
+            <select name="estado" class="form-control">
+                <option value="">Todos</option>
+                <option value="abierto" {% if estado == 'abierto' %}selected{% endif %}>Abierto</option>
+                <option value="cerrado" {% if estado == 'cerrado' %}selected{% endif %}>Cerrado</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+        </div>
+    </div>
+</form>
+
+<!-- Tabla de reportes -->
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead class="table-primary">
+            <tr>
+                <th>Fecha</th>
+                <th>Repartidor</th>
+                <th>Total Enviado</th>
+                <th>Total Cobrado</th>
+                <th>Pendiente</th>
+                <th>Estado</th>
+                <th>Creado por</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in page_obj %}
+            <tr>
+                <td>{{ d.fecha|date:"d/m/Y" }}</td>
+                <td>{{ d.repartidor.get_full_name|default:d.repartidor.username }}</td>
+                <td>S/ {{ d.total_enviado_calc|floatformat:2 }}</td>
+                <td>S/ {{ d.total_cobrado_calc|floatformat:2 }}</td>
+                <td>S/ {{ d.saldo_pendiente_calc|floatformat:2 }}</td>
+                <td>
+                    {% if d.estado == 'abierto' %}
+                        <span class="badge bg-warning text-dark">Abierto</span>
+                    {% else %}
+                        <span class="badge bg-success">Cerrado</span>
+                    {% endif %}
+                </td>
+                <td>{{ d.creado_por.get_full_name|default:d.creado_por.username }}</td>
+                <td>
+                    <div class="btn-group">
+                        <!-- PDF para repartidor -->
+                        <a href="{% url 'documentos:despacho_pdf' d.id %}" class="btn btn-sm btn-info" title="Imprimir para repartidor">
+                            <i class="fas fa-print"></i>
+                        </a>
+
+                        <!-- Acciones: Editar, Cerrar, Reabrir, Eliminar (solo staff/superuser) -->
+                        <!-- Acciones: Editar, Cerrar, Reabrir, Eliminar (solo staff/superuser/encargado) -->
+                        {% if request.user.is_staff or request.user.is_superuser or es_encargado %}
+                            {% if d.estado == 'abierto' %}
+                                <a href="{% url 'documentos:despacho_crear' %}?repartidor_id={{ d.repartidor.id }}" class="btn btn-sm btn-warning" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'documentos:despacho_cerrar' d.id %}" class="btn btn-sm btn-success" title="Cerrar">
+                                    <i class="fas fa-lock"></i>
+                                </a>
+                            {% else %}
+                                <a href="{% url 'documentos:despacho_reabrir' d.id %}" class="btn btn-sm btn-secondary" title="Reabrir">
+                                    <i class="fas fa-unlock"></i>
+                                </a>
+                                <a href="{% url 'documentos:despacho_eliminar' d.id %}" class="btn btn-sm btn-danger" title="Eliminar" onclick="return confirm('¿Eliminar este reporte?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            {% endif %}
+                        {% endif %}
+
+                        <!-- ✅ Registrar Cobro: Repartidor, staff, superuser, encargado o usuario permitido -->
+                        {% if d.estado == 'abierto' %}
+                            {% if request.user == d.repartidor or request.user.is_staff or request.user.is_superuser or es_encargado or request.user.username in usuarios_permitidos %}
+                                <a href="{% url 'documentos:despacho_detalle' d.id %}" class="btn btn-sm btn-primary" title="Registrar Cobro">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                </a>
+                            {% endif %}
+                        {% endif %}
+
+                        <!-- ✅ Registrar Cobro: Repartidor, staff, superuser, encargado o usuario permitido -->
+                        <!-- {% if d.estado == 'abierto' %}
+                            {% if request.user == d.repartidor or request.user.is_staff or request.user.is_superuser or es_encargado or request.user.username in usuarios_permitidos %}
+                                <a href="{% url 'documentos:despacho_detalle' d.id %}" class="btn btn-sm btn-primary" title="Registrar Cobro">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                </a>
+                            {% endif %}
+                        {% endif %} -->
+
+                        <!-- Liquidación: creador, repartidor, staff, superuser -->
+                        {% if request.user == d.creado_por or request.user == d.repartidor or request.user.is_staff or es_encargado or request.user.is_superuser %}
+                            <a href="{% url 'documentos:despacho_liquidacion_pdf' d.id %}" class="btn btn-sm btn-success" title="Liquidación">
+                                <i class="fas fa-file-pdf"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center py-4 text-muted">
+                    <i class="fas fa-truck fa-lg"></i><br>
+                    <small>No hay reportes de despacho.</small>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Paginación -->
+{% if page_obj.has_other_pages %}
+<nav aria-label="Navegación de página">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Anterior</a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Anterior</span>
+            </li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Siguiente</a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Siguiente</span>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}

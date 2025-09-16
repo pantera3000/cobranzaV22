@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% block title %}Cierre de Planilla{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-lock"></i> 
+        Cierre de Planilla - {{ planilla.fecha|date:"d/m/Y" }}
+        <br>
+        <small class="text-muted">
+            Creado: {{ planilla.creada_en|date:"d/m/Y H:i" }} (Lima)
+        </small>
+    </h2>
+    <div>
+        <a href="{% url 'cobros:mis_cierres' %}" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-history"></i> Mis Cierres
+        </a>
+
+        <!-- Ejemplo: Dentro del bloque de botones de acción -->
+        {% if request.user.is_staff %}
+            <a href="{% url 'cobros:admin_reporte_planillas' %}" 
+            class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-file-invoice"></i> Ir a reporte de todas las planillas
+            </a>
+        {% endif %}
+
+        <!-- ✅ Botón Exportar a PDF: Solo si está completado -->
+        {% if planilla.estado == 'completado' %}
+            <a href="{% url 'cobros:planilla_detalle_pdf' planilla.pk %}" class="btn btn-primary btn-sm me-2">
+                <i class="fas fa-file-pdf"></i> Exportar a PDF
+            </a>
+        {% endif %}
+
+        <!-- Botón Volver -->
+        <button type="button" class="btn btn-secondary btn-sm" onclick="window.history.back();">
+            <i class="fas fa-arrow-left"></i> Volver
+        </button>
+    </div>
+</div>
+
+
+
+<div class="alert alert-info">
+    <strong>Total cobrado:</strong> S/ {{ planilla.total_cobrado|floatformat:2 }}<br>
+    <strong>Ya depositado:</strong> S/ {{ planilla.total_depositado|floatformat:2 }}<br>
+    <strong>Pendiente por depositar:</strong> S/ {{ planilla.saldo_pendiente|floatformat:2 }}
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3"><strong>Cobrador:</strong> {{ planilla.cobrador.nombre }}</div>
+            <div class="col-md-3"><strong>Total cobrado:</strong> S/ {{ planilla.total_cobrado|floatformat:2 }}</div>
+            <div class="col-md-3"><strong>Total depositado:</strong> S/ {{ planilla.total_depositado|floatformat:2 }}</div>
+            <div class="col-md-3">
+                <strong>Pendiente:</strong> 
+                <span class="text-danger">S/ {{ planilla.saldo_pendiente|floatformat:2 }}</span>
+            </div>
+        </div>
+        <div class="mt-2">
+            <strong>Estado:</strong> 
+            <span class="badge 
+                {% if planilla.estado == 'completado' %}bg-success
+                {% elif planilla.estado == 'parcial' %}bg-warning
+                {% else %}bg-danger
+                {% endif %}">
+                {{ planilla.get_estado_display }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Formulario de depósito -->
+<!-- Formulario de depósito -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-money-bill-wave"></i> Registrar Depósito</span>
+        {% if planilla.estado == 'completado' %}
+            <span class="badge bg-success">Cierre Completado</span>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if planilla.estado == 'completado' %}
+            <div class="alert alert-success text-center">
+                <strong>✅ Cierre completado</strong><br>
+                El total cobrado coincide con el depositado. No se permiten más depósitos.
+            </div>
+        {% else %}
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label>Monto depositado (S/):</label>
+                    <input type="number" step="0.01" name="monto_deposito" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label>Notas (opcional):</label>
+                    <textarea name="notas" class="form-control" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-save"></i> Registrar Depósito
+                </button>
+            </form>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Historial de depósitos -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-history"></i> Historial de Depósitos
+    </div>
+    <div class="card-body">
+        {% if depositos %}
+        <ul class="list-group">
+            {% for d in depositos %}
+            <li class="list-group-item d-flex justify-content-between">
+                <div>
+                    <strong>S/ {{ d.monto|floatformat:2 }}</strong>
+                    <small class="text-muted"> - {{ d.fecha|date:"d/m/Y H:i" }}</small>
+                    {% if d.notas %}<br><small>{{ d.notas }}</small>{% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">No hay depósitos registrados.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

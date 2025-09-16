@@ -23,4 +23,6 @@ urlpatterns = [
     path('reporte-cartera/', views.reporte_cartera, name='reporte_cartera'),
 
     path('exportar-cartera-excel/', views.exportar_cartera_excel, name='exportar_cartera_excel'),
+
+    path('obtener-correlativo/', views.obtener_proximo_correlativo, name='obtener_proximo_correlativo'),
 ]

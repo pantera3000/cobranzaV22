@@ -102,6 +102,43 @@
                 <p><strong>Pendiente:</strong> <span class="fw-bold text-warning">S/ {{ total_pendiente|floatformat:2 }}</span></p>
                 <p><strong>Vencido:</strong> <span class="fw-bold text-danger">S/ {{ total_vencido|floatformat:2 }}</span></p>
             </div>
+
+
+            <!-- Aporte a la Meta Mensual -->
+            {% if meta %}
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-trophy"></i> Aporte a la Meta Mensual
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <strong class="text-info">Aportado</strong><br>
+                            <span class="h5">S/ {{ aporte_cobrador|floatformat:2 }}</span>
+                        </div>
+                        <div class="col-6">
+                            <strong class="text-success">Meta Global</strong><br>
+                            <span class="h5">S/ {{ meta.monto_objetivo|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                    <div class="progress mt-3" style="height: 10px;">
+                        <div class="progress-bar bg-info" role="progressbar"
+                            style="width: {{ porcentaje_aporte|floatformat:0 }}%;"
+                            aria-valuenow="{{ porcentaje_aporte }}"
+                            aria-valuemin="0" aria-valuemax="100">
+                            {{ porcentaje_aporte|floatformat:1 }}%
+                        </div>
+                    </div>
+                    <small class="text-muted mt-2 d-block text-center">
+                        Este cobrador aportó el <strong>{{ porcentaje_aporte|floatformat:1 }}%</strong> de la meta mensual.
+                    </small>
+                </div>
+            </div>
+            {% endif %}
+
+
+
+
         </div>
     </div>
 </div>

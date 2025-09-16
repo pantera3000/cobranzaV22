@@ -12,7 +12,7 @@ def localtime_peru():
 class CobroForm(forms.ModelForm):
     class Meta:
         model = Cobro
-        fields = ['documento', 'cobrador', 'monto', 'fecha', 'referencia', 'notas']  # ✅ Añadidos: referencia y notas
+        fields = ['documento', 'cobrador', 'monto', 'fecha', 'referencia', 'notas', 'tipo_pago']   # ✅ Añadidos: referencia y notas
         widgets = {
             'documento': forms.HiddenInput(),  # ✅ Mantenido
             'cobrador': forms.Select(attrs={'class': 'form-control'}),
@@ -32,6 +32,7 @@ class CobroForm(forms.ModelForm):
                 'maxlength': '60',
                 'oninput': "this.nextElementSibling.textContent = this.value.length + '/60'"
             }),
+            'tipo_pago': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
             'documento': 'Documento a pagar',

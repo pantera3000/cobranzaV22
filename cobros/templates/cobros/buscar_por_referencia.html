@@ -74,6 +74,7 @@
                             <th>Monto</th>
                             <th>Cobrador</th>
                             <th>Fecha</th>
+                            <th>Correlativo</th> <!-- ✅ Nueva columna -->
                             <th>Referencia</th>
                         </tr>
                     </thead>
@@ -105,6 +106,14 @@
                             <td><strong>S/ {{ cobro.monto|floatformat:2 }}</strong></td>
                             <td>{{ cobro.cobrador.nombre }}</td>
                             <td>{{ cobro.fecha|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <span class="badge bg-info text-white px-3 py-1" 
+                                      style="font-size: 0.85em; border-radius: 20px; font-weight: 500;">
+                                    {{ cobro.correlativo }}
+                                </span>
+                            </td>
+
+
                             <td>
                                 <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
                                 class="d-inline-flex align-items-center gap-2 text-decoration-none">
@@ -164,6 +173,16 @@
                             <p class="mb-1">
                                 <strong>Cobrador:</strong> {{ cobro.cobrador.nombre }}
                             </p>
+
+                            <!-- ✅ Correlativo (móvil) -->
+                            <p class="mb-1">
+                                <strong>Correlativo:</strong>
+                                <span class="badge bg-info text-white px-3 py-1" 
+                                      style="font-size: 0.85em; border-radius: 20px; font-weight: 500;">
+                                    {{ cobro.correlativo }}
+                                </span>
+                            </p>
+
 
                             <!-- ✅ Notas (móvil) -->
                             {% if cobro.notas %}

@@ -126,13 +126,26 @@
                 <form id="form-pagos">
                     {% csrf_token %}
                     <!-- Campo para número o referencia del pago múltiple -->
+                    <!-- Campo correlativo (automático, no editable) -->
+                    <div class="mb-3">
+                        <label for="correlativo">Correlativo (Automático):</label>
+                        <input type="text" 
+                            id="correlativo" 
+                            class="form-control form-control-sm"
+                            value="" 
+                            readonly
+                            style="background-color: #f8f9fa; font-weight: 500;">
+                        <small class="text-muted">Se generará automáticamente al cargar la página.</small>
+                    </div>
+
+                    <!-- Campo para referencia personalizada -->
                     <div class="mb-3">
                         <label for="referencia">Número de Operación / Referencia / Planilla:</label>
                         <input type="text" 
                             name="referencia" 
                             id="referencia" 
                             class="form-control form-control-sm"
-                            placeholder="Ej: LOTE-001, RECIBO-2025-123"
+                            placeholder="Ej: RECIBO-2025-123"
                             maxlength="50"
                             required>
                         <div class="invalid-feedback">
@@ -158,19 +171,23 @@
                         </div>
                     </div>
 
+
+                    <!-- Campo Notas (Pago Múltiple) -->
                     <!-- Campo Notas (Pago Múltiple) -->
                     <div class="mb-3">
-                        <label for="id_notas" class="form-label">Notas Adicionales (opcional)</label>
+                        <label for="id_notas">Notas Adicionales (opcional)</label>
                         <textarea 
                             name="notas" 
                             id="id_notas" 
-                            class="form-control" 
+                            class="form-control form-control-sm"
                             rows="3"
-                            placeholder="Información extra sobre estos pagos (opcional)..."></textarea>
-                        <small class="form-text text-muted">
-                            Esta nota se aplicará a todos los pagos registrados.
-                        </small>
+                            maxlength="60"
+                            placeholder="Información extra sobre estos pagos... (opcional)"></textarea>
+                        <small class="text-muted">Esta nota se aplicará a todos los pagos registrados.</small>
+                        <small id="notas-counter" class="text-muted d-block text-end mt-1">0/60</small>
                     </div>
+
+
 
 
                     <button type="submit" class="btn btn-success w-100" id="btn-registrar">
@@ -223,12 +240,14 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <small>Saldo: S/ ${pago.saldo.toFixed(2)}</small>
                             </div>
                             <div class="text-end">
-                                <input type="number" step="0.01" min="0" max="${pago.saldo}" 
+                                <input type="number" step="0.01" min="0"
+             
                                     id="${inputId}" name="pago_${pago.id}" 
                                     value="" 
                                     placeholder="0.00"
                                     class='form-control form-control-sm mb-1' 
-                                    style='width: 100px; display: inline-block;'>
+                                    style='width: 100px; display: inline-block;'
+                                    title="Puedes pagar más del saldo (saldo a favor)">
                                 <button type="button" class="btn btn-sm btn-danger" 
                                         onclick="eliminarPago(${index})">
                                     <i class="fas fa-trash"></i>
@@ -306,7 +325,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const formData = new FormData();
         formData.append('cobrador', cobrador);
-        formData.append('referencia', referenciaInput.value.trim()); // ✅ Ahora siempre se envía
+        formData.append('referencia', referenciaInput.value.trim());
+
+        // ✅ Obtener y añadir notas
+        const notasInput = document.getElementById('id_notas');
+        const notas = notasInput ? notasInput.value : '';
+        formData.append('notas', notas);
 
         pagos.forEach(pago => {
             const input = document.getElementById(`pago_${pago.id}`);
@@ -346,6 +370,38 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('Error al registrar pagos. Revisa la consola.');
         });
     });
+
+    // ✅ Contador de caracteres para el campo "notas"
+    const notasTextarea = document.getElementById('id_notas');
+    const counter = document.getElementById('notas-counter');
+
+    if (notasTextarea && counter) {
+        // Mostrar longitud inicial
+        counter.textContent = notasTextarea.value.length + '/60';
+
+        // Actualizar al escribir
+        notasTextarea.addEventListener('input', function () {
+            counter.textContent = this.value.length + '/60';
+        });
+    }
 });
 </script>
+
+
+<script>
+// ✅ Obtener el próximo correlativo del backend
+document.addEventListener('DOMContentLoaded', async function () {
+    try {
+        const response = await fetch('{% url "cobros:obtener_proximo_correlativo" %}');
+        const data = await response.json();
+        document.getElementById('correlativo').value = data.correlativo;
+    } catch (err) {
+        console.error('Error al obtener el correlativo:', err);
+        // Fallback: usar un valor temporal
+        document.getElementById('correlativo').value = 'LOTE-XXXX (calculando...)';
+    }
+});
+</script>
+
+
 {% endblock %}

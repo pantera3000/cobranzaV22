@@ -16,6 +16,14 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-chart-line"></i> Reporte de Cartera de Cobranzas</h2>
+
+
+    <a href="{% url 'cobros:meta_create_or_update' %}" class="btn btn-warning ms-2">
+        <i class="fas fa-cog"></i> Configurar Meta
+    </a>
+
+
+    
     <div>
         <a href="{% url 'cobros:cobro_list' %}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Volver cobros Registrados
@@ -94,6 +102,57 @@
         </div>
     </div>
 </div>
+
+
+
+<!-- Meta Mensual -->
+{% if meta %}
+<div class="card mb-4">
+    <div class="card-header bg-warning text-white">
+        <i class="fas fa-bullseye"></i> Meta Mensual
+    </div>
+    <div class="card-body">
+        <h5>S/ {{ meta.monto_objetivo|floatformat:2 }}</h5>
+        <p class="text-muted">Meta para {{ meta.mes|date:"F Y" }}</p>
+
+        <div class="progress mb-2" style="height: 25px;">
+            <div class="progress-bar bg-success" role="progressbar"
+                 style="width: {{ meta.porcentaje_alcanzado|floatformat:0 }}%;"
+                 aria-valuenow="{{ meta.porcentaje_alcanzado }}"
+                 aria-valuemin="0" aria-valuemax="100">
+                {{ meta.porcentaje_alcanzado|floatformat:0 }}%
+            </div>
+        </div>
+
+        <small>
+            S/ {{ meta.monto_alcanzado|floatformat:2 }} de S/ {{ meta.monto_objetivo|floatformat:2 }}
+        </small>
+    </div>
+</div>
+
+
+{% else %}
+    <div class="alert alert-warning d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>¡No has definido la meta para este mes!</strong>
+            <br>
+            <small class="text-muted">Establece una meta para motivar al equipo y hacer seguimiento.</small>
+        </div>
+        <a href="{% url 'cobros:meta_create_or_update' %}" 
+           class="btn btn-warning btn-sm px-4">
+            <i class="fas fa-bullseye"></i> 
+            Crear Meta Ahora
+        </a>
+    </div>
+{% endif %}
+
+
+
+
+
+
+
 
 <div class="row">
     <!-- Top Clientes con Saldo Pendiente -->

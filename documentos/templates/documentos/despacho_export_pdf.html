@@ -1,0 +1,55 @@
+<!-- documentos/templates/documentos/despacho_export_pdf.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reportes de Reparto</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 8px; text-align: left; border: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>NATIVA - Reportes de Reparto</h2>
+        {% if fecha %}<p><strong>Fecha:</strong> {{ fecha }}</p>{% endif %}
+        {% if repartidor %}<p><strong>Repartidor:</strong> {{ repartidor.get_full_name|default:repartidor.username }}</p>{% endif %}
+        {% if estado %}<p><strong>Estado:</strong> {{ estado|title }}</p>{% endif %}
+        <p><strong>Generado el:</strong> {% now "d/m/Y H:i" %}</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Repartidor</th>
+                <th>Total Enviado</th>
+                <th>Total Cobrado</th>
+                <th>Pendiente</th>
+                <th>Estado</th>
+                <th>Creado por</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in despachos %}
+            <tr>
+                <td>{{ d.fecha|date:"d/m/Y" }}</td>
+                <td>{{ d.repartidor.get_full_name|default:d.repartidor.username }}</td>
+                <td class="text-right">S/ {{ d.total_enviado_calc|floatformat:2 }}</td>
+                <td class="text-right">S/ {{ d.total_cobrado_calc|floatformat:2 }}</td>
+                <td class="text-right">S/ {{ d.saldo_pendiente_calc|floatformat:2 }}</td>
+                <td>{{ d.get_estado_display }}</td>
+                <td>{{ d.creado_por.get_full_name|default:d.creado_por.username }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center">No hay reportes.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

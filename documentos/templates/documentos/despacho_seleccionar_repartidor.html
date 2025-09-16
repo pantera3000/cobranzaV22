@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Seleccionar Repartidor{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-truck"></i> Seleccionar Repartidor</h3>
+    </div>
+    <div class="card-body">
+        <p>Elige el repartidor para quien deseas crear el reporte de despacho:</p>
+        <ul class="list-group">
+            {% for user in repartidores %}
+            <li class="list-group-item">
+                <a href="{% url 'documentos:despacho_crear' %}?repartidor_id={{ user.id }}" class="btn btn-sm btn-primary">
+                    {{ user.get_full_name|default:user.username }}
+                </a>
+            </li>
+            {% empty %}
+            <li class="list-group-item text-muted">No hay repartidores disponibles.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,150 @@
+<!-- documentos/templates/documentos/despacho_detalle.html -->
+{% extends 'base_minimal.html' %}
+{% block title %}Registrar Cobro de Reparto{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-money-bill-wave"></i> Registrar Cobro de Reparto</h2>
+    <div>
+        <a href="{% url 'documentos:despacho_lista' %}" class="btn btn-secondary">
+            <i class="fas fa-list"></i> Listado
+        </a>
+    </div>
+</div>
+
+<p><strong>Repartidor:</strong> {{ despacho.repartidor.get_full_name|default:despacho.repartidor.username }}</p>
+<p><strong>Fecha:</strong> {{ despacho.fecha|date:"d/m/Y" }}</p>
+<p><strong>Estado:</strong> 
+    {% if despacho.estado == 'abierto' %}
+        <span class="badge bg-warning text-dark">Abierto</span>
+    {% else %}
+        <span class="badge bg-success">Cerrado</span>
+    {% endif %}
+</p>
+
+<form method="post" action="{% url 'documentos:despacho_registrar_cobro' despacho.id %}">
+    {% csrf_token %}
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead class="table-primary">
+                <tr>
+                    <th>Documento</th>
+                    <th>Cliente</th>
+                    <th>Total</th>
+                    <th>Ya Cobrado</th>
+                    <th>Saldo Pendiente</th>
+                    <th>Cobrar Ahora</th>
+                    <th>Medio de Pago</th>
+                    <th>Observaciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for det in detalles %}
+                <tr>
+                    <td>{{ det.documento.get_numero_completo }}</td>
+                    <td>{{ det.cliente.nombre }}</td>
+                    <td>S/ {{ det.documento.monto_total|floatformat:2 }}</td>
+                    
+                    <!-- Ya cobrado previamente (incluye cobros anteriores) -->
+                    <td>S/ {{ det.documento.monto_pagado|floatformat:2 }}</td>
+                    
+                    <!-- Saldo pendiente actual -->
+                    <td style="color: #d9534f;">
+                        <strong>S/ {{ det.documento.get_saldo_pendiente|floatformat:2 }}</strong>
+                    </td>
+                    
+                    <!-- Campo para cobrar ahora -->
+                    <!-- Campo para cobrar ahora -->
+                    <!-- Campo para cobrar ahora -->
+                    <td>
+                        {% if despacho.estado == 'abierto' %}
+                            {% if det.documento.get_saldo_pendiente <= 0 %}
+                                <span class="badge bg-success w-100">Pagado</span>
+                            {% else %}
+                                <input type="number" step="0.01" name="cobrado_{{ det.pk }}"
+                                    class="form-control form-control-sm"
+                                    value="{{ det.cobrado|floatformat:2 }}"
+                                    min="0"
+                                    max="{{ det.documento.get_saldo_pendiente|floatformat:2 }}"
+                                    placeholder="0">
+                            {% endif %}
+                        {% else %}
+                            S/ {{ det.cobrado|floatformat:2 }}
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Medio de pago -->
+                    <!-- <td>
+                        {% if despacho.estado == 'abierto' %}
+                            <select name="medio_{{ det.pk }}" class="form-select form-select-sm" required>
+                                <option value="">-- Seleccionar --</option>
+                                <option value="efectivo" {% if det.medio_pago == 'efectivo' %}selected{% endif %}>Efectivo</option>
+                                <option value="yape" {% if det.medio_pago == 'yape' %}selected{% endif %}>Yape / Plin</option>
+                                <option value="transferencia" {% if det.medio_pago == 'transferencia' %}selected{% endif %}>Transferencia</option>
+                                <option value="deposito" {% if det.medio_pago == 'deposito' %}selected{% endif %}>Depósito</option>
+                                <option value="credito" {% if det.medio_pago == 'credito' %}selected{% endif %}>Crédito</option>
+                                <option value="otro" {% if det.medio_pago == 'otro' %}selected{% endif %}>Otro</option>
+                            </select>
+                        {% else %}
+                            {{ det.get_medio_pago_display|default:"-" }}
+                        {% endif %}
+                    </td> -->
+
+                    <!-- Medio de pago -->
+                    <td>
+                        {% if despacho.estado == 'abierto' %}
+                            {% if det.documento.get_saldo_pendiente <= 0 %}
+                                <!-- Si ya está pagado, no requiere medio -->
+                                <select name="medio_{{ det.pk }}" class="form-select form-select-sm">
+                                    <option value="">-- --</option>
+                                    <option value="efectivo" {% if det.medio_pago == 'efectivo' %}selected{% endif %}>Efectivo</option>
+                                    <option value="yape" {% if det.medio_pago == 'yape' %}selected{% endif %}>Yape / Plin</option>
+                                    <option value="transferencia" {% if det.medio_pago == 'transferencia' %}selected{% endif %}>Transferencia</option>
+                                    <option value="deposito" {% if det.medio_pago == 'deposito' %}selected{% endif %}>Depósito</option>
+                                    <option value="credito" {% if det.medio_pago == 'credito' %}selected{% endif %}>Crédito</option>
+                                    <option value="otro" {% if det.medio_pago == 'otro' %}selected{% endif %}>Otro</option>
+                                </select>
+                            {% else %}
+                                <!-- Solo requiere medio si se ingresa un monto mayor a 0 -->
+                                <select name="medio_{{ det.pk }}" class="form-select form-select-sm"
+                                        onchange="this.setCustomValidity('');"
+                                        oninvalid="if (parseFloat(document.querySelector('[name=cobrado_{{ det.pk }}]').value) > 0) this.setCustomValidity('Debe seleccionar un medio de pago.');">
+                                    <option value="">-- Seleccionar --</option>
+                                    <option value="efectivo" {% if det.medio_pago == 'efectivo' %}selected{% endif %}>Efectivo</option>
+                                    <option value="yape" {% if det.medio_pago == 'yape' %}selected{% endif %}>Yape / Plin</option>
+                                    <option value="transferencia" {% if det.medio_pago == 'transferencia' %}selected{% endif %}>Transferencia</option>
+                                    <option value="deposito" {% if det.medio_pago == 'deposito' %}selected{% endif %}>Depósito</option>
+                                    <option value="credito" {% if det.medio_pago == 'credito' %}selected{% endif %}>Crédito</option>
+                                    <option value="otro" {% if det.medio_pago == 'otro' %}selected{% endif %}>Otro</option>
+                                </select>
+                            {% endif %}
+                        {% else %}
+                            {{ det.get_medio_pago_display|default:"-" }}
+                        {% endif %}
+                    </td>
+
+
+
+                    
+                    <!-- Observaciones -->
+                    <td>
+                        {% if despacho.estado == 'abierto' %}
+                            <textarea name="obs_{{ det.pk }}" class="form-control form-control-sm" rows="1">{{ det.observaciones }}</textarea>
+                        {% else %}
+                            {{ det.observaciones|default:"-" }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6">No hay documentos asignados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if despacho.estado == 'abierto' %}
+        <button type="submit" class="btn btn-success mt-3">Guardar Cobros y Cerrar</button>
+    {% endif %}
+</form>
+
+{% endblock %}

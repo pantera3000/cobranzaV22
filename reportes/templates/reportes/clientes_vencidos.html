@@ -26,6 +26,52 @@
     </div>
 </div>
 
+
+<!-- Filtro de búsqueda -->
+<form method="get" class="mb-4">
+    <div class="row g-3 align-items-end">
+        <!-- Filtro de días (existente) -->
+        <div class="col-md-3">
+            <label class="form-label">Rango de Retraso</label>
+            <div class="btn-group w-100">
+                <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                    Filtro: 
+                    {% if dias_filtro == '30' %}0–30 días{% elif dias_filtro == '60' %}31–60 días{% elif dias_filtro == '90' %}+60 días{% else %}Todos{% endif %}
+                </button>
+                <ul class="dropdown-menu w-100">
+                    <li><a class="dropdown-item {% if not dias_filtro %}active{% endif %}" href="?q={{ query|urlencode }}">Todos</a></li>
+                    <li><a class="dropdown-item {% if dias_filtro == '30' %}active{% endif %}" href="?dias=30&q={{ query|urlencode }}">0–30 días</a></li>
+                    <li><a class="dropdown-item {% if dias_filtro == '60' %}active{% endif %}" href="?dias=60&q={{ query|urlencode }}">31–60 días</a></li>
+                    <li><a class="dropdown-item {% if dias_filtro == '90' %}active{% endif %}" href="?dias=90&q={{ query|urlencode }}">Más de 60 días</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Campo de búsqueda -->
+        <div class="col-md-5">
+            <label class="form-label">Buscar Cliente</label>
+            <input type="text" 
+                   name="q" 
+                   class="form-control" 
+                   placeholder="Nombre o DNI/RUC..." 
+                   value="{{ query|default:'' }}">
+        </div>
+
+        <!-- Botones -->
+        <div class="col-md-4">
+            <button type="submit" class="btn btn-primary w-100 mb-1">
+                <i class="fas fa-search"></i> Buscar
+            </button>
+            {% if query or dias_filtro %}
+                <a href="{% url 'reportes:clientes_vencidos' %}" class="btn btn-secondary w-100 btn-sm">
+                    <i class="fas fa-times"></i> Limpiar filtros
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</form>
+
+
 <!-- Resumen del reporte -->
 {% if clientes_list %}
 <div class="alert alert-danger mb-4">

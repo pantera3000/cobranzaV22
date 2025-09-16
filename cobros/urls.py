@@ -23,4 +23,28 @@ urlpatterns = [
     path('reporte-cartera/', views.reporte_cartera, name='reporte_cartera'),
 
     path('exportar-cartera-excel/', views.exportar_cartera_excel, name='exportar_cartera_excel'),
+
+    path('obtener-correlativo/', views.obtener_proximo_correlativo, name='obtener_proximo_correlativo'),
+
+    path('meta/configurar/', views.meta_create_or_update, name='meta_create_or_update'),
+
+    path('historial-metas/', views.historial_metas, name='historial_metas'),
+    path('detalle-meta/<int:year>/<int:month>/', views.detalle_meta_mes, name='detalle_meta_mes'),
+
+
+
+    path('cerrar-planilla/', views.cerrar_planilla_del_dia, name='cerrar_planilla_del_dia'),
+    path('planilla/<int:pk>/', views.planilla_detalle, name='planilla_detalle'),
+    path('historial-planillas/', views.historial_planillas, name='historial_planillas'),
+    path('admin-reporte-planillas/', views.admin_reporte_planillas, name='admin_reporte_planillas'),
+
+
+    path('mis-cierres/', views.mis_cierres, name='mis_cierres'),
+
+    path('reabrir-planilla/<int:pk>/', views.reabrir_planilla, name='reabrir_planilla'),
+
+    path('planilla/<int:pk>/pdf/', views.planilla_detalle_pdf, name='planilla_detalle_pdf'),
+
+    path('admin-reporte-planillas/pdf/', views.admin_reporte_planillas_pdf, name='admin_reporte_planillas_pdf'),
+
 ]

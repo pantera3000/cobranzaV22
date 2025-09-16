@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Historial de Metas Mensuales{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-history"></i> Historial de Metas Mensuales</h2>
+    <a href="{% url 'cobros:reporte_cartera' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Volver
+    </a>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Mes</th>
+                <th>Meta (S/)</th>
+                <th>Alcanzado (S/)</th>
+                <th>%</th>
+                <th>Estado</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in data_metas %}
+            <tr>
+                <td>{{ d.meta.mes|date:"F Y" }}</td>
+                <td>{{ d.meta.monto_objetivo|floatformat:2 }}</td>
+                <td>{{ d.monto_alcanzado|floatformat:2 }}</td>
+                <td>{{ d.porcentaje|floatformat:0 }}%</td>
+                <td>
+                    <span class="badge bg-{% if d.cumplida %}success{% else %}warning text-dark{% endif %}">
+                        {% if d.cumplida %}✅ Cumplida{% else %}❌ No cumplida{% endif %}
+                    </span>
+                </td>
+                <td>
+                    <a href="{% url 'cobros:detalle_meta_mes' d.meta.mes.year d.meta.mes.month %}"
+                       class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-search"></i> Detalle
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center text-muted">
+                    No hay metas definidas.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

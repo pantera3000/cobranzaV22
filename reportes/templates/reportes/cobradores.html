@@ -182,7 +182,46 @@
     {% endif %}
 </div>
 
+<!-- Paginación -->
+{% if page_obj.has_other_pages %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?{% if fecha_desde %}fecha_desde={{ fecha_desde }}&{% endif %}{% if fecha_hasta %}fecha_hasta={{ fecha_hasta }}&{% endif %}{% if filtro_rapido %}filtro={{ filtro_rapido }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                    &laquo; Anterior
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+                <a class="page-link" href="?{% if fecha_desde %}fecha_desde={{ fecha_desde }}&{% endif %}{% if fecha_hasta %}fecha_hasta={{ fecha_hasta }}&{% endif %}{% if filtro_rapido %}filtro={{ filtro_rapido }}&{% endif %}page={{ num }}">
+                    {{ num }}
+                </a>
+            </li>
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?{% if fecha_desde %}fecha_desde={{ fecha_desde }}&{% endif %}{% if fecha_hasta %}fecha_hasta={{ fecha_hasta }}&{% endif %}{% if filtro_rapido %}filtro={{ filtro_rapido }}&{% endif %}page={{ page_obj.next_page_number }}">
+                    Siguiente &raquo;
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 {% endblock %} <!-- Fin de content -->
+
+
+
+
+
 
 {% block extra_css %}
 <style>

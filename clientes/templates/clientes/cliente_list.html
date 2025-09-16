@@ -14,6 +14,26 @@
         <a href="{% url 'clientes:cliente_create' %}" class="btn btn-success me-2">
             <i class="fas fa-plus"></i> Nuevo Cliente
         </a>
+        <!-- ✅ Botón: Carga Masiva con Excel -->
+        <div class="btn-group">
+            <button type="button" class="btn btn-info dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="fas fa-file-excel"></i> Carga Masiva
+            </button>
+            <ul class="dropdown-menu">
+                <li>
+                    <a class="dropdown-item" href="{% url 'clientes:descargar_plantilla_excel' %}">
+                        <i class="fas fa-download text-primary"></i> Descargar Plantilla
+                    </a>
+                </li>
+                <li>
+                    <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#modalSubirClientesExcel">
+                        <i class="fas fa-upload text-success"></i> Subir Clientes
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+
         <div class="btn-group">
             <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
                 <i class="fas fa-download"></i> Exportar
@@ -192,4 +212,38 @@
         {% endif %}
     </div>
 </div>
+
+
+
+<!-- ✅ Modal: Subir Clientes Excel -->
+<div class="modal fade" id="modalSubirClientesExcel" tabindex="-1" aria-labelledby="modalSubirClientesExcelLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" enctype="multipart/form-data" action="{% url 'clientes:importar_clientes_excel' %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalSubirClientesExcelLabel">
+                        <i class="fas fa-users text-info"></i> Importar Clientes desde Excel
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Sube un archivo Excel con los clientes a importar. Usa la plantilla descargable para asegurar el formato correcto.</p>
+                    <div class="mb-3">
+                        <label for="archivo_excel" class="form-label">Archivo Excel (.xlsx)</label>
+                        <input type="file" name="archivo_excel" class="form-control" accept=".xlsx" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check"></i> Importar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
 {% endblock %}

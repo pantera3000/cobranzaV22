@@ -520,13 +520,16 @@
 
                                 <td>{{ cobro.fecha|date:"d/m/Y H:i" }}</td>
                                 <td>
-                                    <form method="post" action="{% url 'cobros:cobro_delete' cobro.pk %}" style="display: inline;">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-danger"
-                                                onclick="return confirm('¿Eliminar pago de S/ {{ cobro.monto|floatformat:2 }}?');">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
+                                    {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'maria' or user.username == 'carlos' %}
+                                        <form method="post" action="{% url 'cobros:cobro_delete' cobro.pk %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <small class="text-muted">–</small>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% empty %}
@@ -599,13 +602,15 @@
                             </p>
 
                             <div class="mt-2">
-                                <form method="post" action="{% url 'cobros:cobro_delete' cobro.pk %}" class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-danger"
-                                            onclick="return confirm('¿Eliminar pago de S/ {{ cobro.monto|floatformat:2 }}?');">
-                                        <i class="fas fa-trash"></i> Eliminar
-                                    </button>
-                                </form>
+                                {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'maria' or user.username == 'carlos' %}
+                                    <form method="post" action="{% url 'cobros:cobro_delete' cobro.pk %}" class="mt-2">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm"
+                                                onclick="return confirm('¿Eliminar pago de S/ {{ cobro.monto|floatformat:2 }}?');">
+                                            <i class="fas fa-trash"></i> Eliminar
+                                        </button>
+                                    </form>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -710,13 +715,19 @@
                                 </td>
                                 <td>{{ dev.fecha|date:"d/m/Y H:i" }}</td>
                                 <td>
-                                    <form method="post" action="{% url 'devoluciones:devolucion_delete' dev.pk %}" style="display: inline;">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-danger"
-                                                onclick="return confirm('¿Eliminar devolución de S/ {{ dev.monto|floatformat:2 }}?');">
-                                            <i class="fas fa-trash"></i>
+                                    {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'maria' %}
+                                        <form method="post" action="{% url 'devoluciones:devolucion_delete' dev.pk %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-danger"
+                                                    onclick="return confirm('¿Eliminar devolución de S/ {{ dev.monto|floatformat:2 }}?');">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <button class="btn btn-sm btn-secondary" disabled>
+                                            <i class="fas fa-ban"></i>
                                         </button>
-                                    </form>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% empty %}
@@ -769,15 +780,16 @@
                                 <small>Fecha: {{ dev.fecha|date:"d/m/Y H:i" }}</small>
                             </p>
 
-                            <div class="mt-2">
-                                <form method="post" action="{% url 'devoluciones:devolucion_delete' dev.pk %}" class="d-inline">
+                            <!-- Dentro de cada tarjeta de devolución -->
+                            {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'maria' %}
+                                <form method="post" action="{% url 'devoluciones:devolucion_delete' dev.pk %}" class="mt-2">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-danger"
+                                    <button type="submit" class="btn btn-danger btn-sm"
                                             onclick="return confirm('¿Eliminar devolución de S/ {{ dev.monto|floatformat:2 }}?');">
                                         <i class="fas fa-trash"></i> Eliminar
                                     </button>
                                 </form>
-                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     {% empty %}

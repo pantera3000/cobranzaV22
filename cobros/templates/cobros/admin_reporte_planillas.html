@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% block title %}Reporte de Planillas{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-file-invoice"></i> Reporte de Planillas de Cierre</h2>
+    <div>
+        <!-- Botón Exportar a PDF -->
+        <a href="{% url 'cobros:admin_reporte_planillas_pdf' %}?{{ request.GET.urlencode }}"
+           class="btn btn-danger btn-sm me-2">
+            <i class="fas fa-file-pdf"></i> Exportar a PDF
+        </a>
+        <!-- Botón Volver -->
+        <button type="button" class="btn btn-secondary btn-sm" onclick="window.history.back();">
+            <i class="fas fa-arrow-left"></i> Volver
+        </button>
+    </div>
+</div>
+
+
+
+
+
+
+<!-- Filtros -->
+<!-- Filtros -->
+<form method="get" class="mb-4">
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label>Cobrador</label>
+            <select name="cobrador" class="form-control">
+                <option value="">Todos</option>
+                {% for c in cobradores %}
+                <option value="{{ c.id }}" {% if filtros.cobrador == c.id|stringformat:"s" %}selected{% endif %}>
+                    {{ c.nombre }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label>Fecha</label>
+            <input type="date" name="fecha" class="form-control" value="{{ filtros.fecha }}">
+        </div>
+        <div class="col-md-3">
+            <label>Estado</label>
+            <select name="estado" class="form-control">
+                <option value="">Todos</option>
+                <option value="pendiente" {% if filtros.estado == "pendiente" %}selected{% endif %}>Pendiente</option>
+                <option value="parcial" {% if filtros.estado == "parcial" %}selected{% endif %}>Parcial</option>
+                <option value="completado" {% if filtros.estado == "completado" %}selected{% endif %}>Completado</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end gap-2">
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+            <!-- Botón Limpiar -->
+            <a href="{% url 'cobros:admin_reporte_planillas' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times"></i> Limpiar
+            </a>
+        </div>
+    </div>
+</form>
+
+<!-- Tabla -->
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead class="table-primary">
+            <tr>
+                <th>Cobrador</th>
+                <th>Fecha</th>
+                <th>Hora</th> <!-- ✅ Nueva columna -->
+                <th>Total Cobrado</th>
+                <th>Total Depositado</th>
+                <th>Pendiente</th>
+                <th>Estado</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in page_obj %}
+            <tr>
+                <td>{{ p.cobrador.nombre }}</td>
+                <td>{{ p.fecha|date:"d/m/Y" }}</td>
+                <td>{{ p.creada_en|date:"H:i" }}</td> <!-- ✅ Hora de creación -->
+                <td>S/ {{ p.total_cobrado|floatformat:2 }}</td>
+                <td>S/ {{ p.total_depositado|floatformat:2 }}</td>
+                <td>S/ {{ p.saldo_pendiente|floatformat:2 }}</td>
+                <td>
+                    <span class="badge 
+                        {% if p.estado == 'completado' %}bg-success
+                        {% elif p.estado == 'parcial' %}bg-warning
+                        {% else %}bg-danger
+                        {% endif %}">
+                        {{ p.get_estado_display }}
+                    </span>
+                </td>
+                <td>
+                    <!-- ✅ Ver siempre disponible -->
+                    <a href="{% url 'cobros:planilla_detalle' p.pk %}" class="btn btn-sm btn-info">
+                        <i class="fas fa-eye"></i> Ver
+                    </a>
+
+                    <!-- ✅ Reabrir solo si es staff o superusuario -->
+                    {% if request.user.is_staff and p.estado != 'pendiente' %}
+                        <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#reabrirModal{{ p.pk }}">
+                            <i class="fas fa-undo"></i> Reabrir
+                        </button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center">No hay planillas registradas.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Información de resultados -->
+<p class="text-muted">
+    {% if page_obj %}
+        Mostrando {{ page_obj.start_index }} al {{ page_obj.end_index }} de {{ page_obj.paginator.count }} planillas.
+    {% else %}
+        No hay planillas registradas.
+    {% endif %}
+</p>
+
+<!-- Paginación -->
+{% if page_obj.has_other_pages %}
+<nav aria-label="Paginación de planillas">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?{% if cobrador_id %}cobrador={{ cobrador_id }}&{% endif %}{% if fecha %}fecha={{ fecha }}&{% endif %}{% if estado %}estado={{ estado }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                    &laquo; Anterior
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">&laquo; Anterior</span>
+            </li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li class="page-item active" aria-current="page">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+            {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if cobrador_id %}cobrador={{ cobrador_id }}&{% endif %}{% if fecha %}fecha={{ fecha }}&{% endif %}{% if estado %}estado={{ estado }}&{% endif %}page={{ num }}">
+                        {{ num }}
+                    </a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?{% if cobrador_id %}cobrador={{ cobrador_id }}&{% endif %}{% if fecha %}fecha={{ fecha }}&{% endif %}{% if estado %}estado={{ estado }}&{% endif %}page={{ page_obj.next_page_number }}">
+                    Siguiente &raquo;
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Siguiente &raquo;</span>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Modales para Reabrir Cierre (uno por planilla) -->
+{% for p in page_obj %}
+<div class="modal fade" id="reabrirModal{{ p.pk }}" tabindex="-1" aria-labelledby="reabrirModalLabel{{ p.pk }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reabrirModalLabel{{ p.pk }}">¿Reabrir cierre?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>¿Estás seguro de reabrir el cierre del día <span class="fw-bold">{{ p.fecha|date:"d/m/Y" }}</span>?</strong></p>
+                <p>Esto permitirá al cobrador <span class="fw-bold">{{ p.cobrador.nombre }}</span> modificar los depósitos.</p>
+                <small class="text-danger">Esta acción no elimina el historial de depósitos, pero reinicia el total depositado.</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{% url 'cobros:reabrir_planilla' p.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-undo"></i> Sí, Reabrir
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

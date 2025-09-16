@@ -26,6 +26,117 @@ from django.contrib.auth.decorators import user_passes_test
 from django.shortcuts import redirect
 from .models import LogActividad
 
+
+
+
+
+# clientes/views.py
+
+
+from openpyxl.styles import Font
+import pandas as pd
+
+def descargar_plantilla_clientes_excel(request):
+    """Descarga una plantilla Excel para importar clientes"""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Plantilla Clientes"
+
+    # Encabezados
+    headers = ["Nombre", "DNI/RUC", "Teléfono", "Correo", "Dirección", "Notas"]
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+
+    # Ejemplo
+    ws.append(["Juan Pérez", "12345678", "999888777", "juan@email.com", "Av. Siempre Viva 123", "Cliente regular"])
+
+    # Respuesta
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="plantilla_clientes.xlsx"'
+    wb.save(response)
+    return response
+
+
+def importar_clientes_excel(request):
+    if request.method == 'POST' and request.FILES.get('archivo_excel'):
+        archivo = request.FILES['archivo_excel']
+        
+        try:
+            # Leer Excel
+            df = pd.read_excel(archivo)
+            clientes_creados = 0
+            errores = []
+
+            for index, row in df.iterrows():
+                try:
+                    nombre = str(row['Nombre']).strip()
+                    dni_ruc = str(row['DNI/RUC']).strip()
+                    
+                    # Campos opcionales
+                    telefono = str(row.get('Teléfono', '')).strip()
+                    telefono = telefono if telefono != 'nan' else ''
+                    
+                    correo = str(row.get('Correo', '')).strip()
+                    correo = correo if correo != 'nan' else ''
+                    
+                    direccion = str(row.get('Dirección', '')).strip()
+                    direccion = direccion if direccion != 'nan' else ''
+                    
+                    notas = str(row.get('Notas', '')).strip()
+                    notas = notas if notas != 'nan' else ''
+
+                    # Validar campos obligatorios
+                    if not nombre or nombre == 'nan':
+                        errores.append(f"Fila {index+2}: Nombre vacío.")
+                        continue
+                    if not dni_ruc or dni_ruc == 'nan':
+                        errores.append(f"Fila {index+2}: DNI/RUC vacío.")
+                        continue
+
+                    # Evitar duplicados
+                    if Cliente.objects.filter(dni_ruc=dni_ruc).exists():
+                        errores.append(f"Fila {index+2}: Cliente con DNI/RUC '{dni_ruc}' ya existe.")
+                        continue
+
+                    # Crear cliente
+                    Cliente.objects.create(
+                        nombre=nombre,
+                        dni_ruc=dni_ruc,
+                        telefono=telefono,
+                        correo=correo,
+                        direccion=direccion,
+                        notas=notas
+                    )
+                    clientes_creados += 1
+
+                except Exception as e:
+                    errores.append(f"Fila {index+2}: Error en datos - {str(e)}")
+
+            # Mensajes
+            if clientes_creados > 0:
+                messages.success(request, f"✅ {clientes_creados} clientes importados correctamente.")
+            if errores:
+                for error in errores:
+                    messages.warning(request, error)
+
+        except Exception as e:
+            messages.error(request, f"❌ Error al leer el archivo: {str(e)}")
+
+    return redirect('clientes:cliente_list')
+
+
+
+
+
+
+
+
+
+
+
+
+
 @user_passes_test(lambda u: u.is_superuser)
 def limpiar_log(request):
     if request.method == 'POST':
@@ -116,7 +227,11 @@ def cliente_list(request):
 
 
 def cliente_detail(request, pk):
-    cliente = get_object_or_404(Cliente, pk=pk)
+    try:
+        cliente = Cliente.objects.get(pk=pk)
+    except Cliente.DoesNotExist:
+        messages.warning(request, 'El cliente ya no existe o fue eliminado.')
+        return redirect('clientes:cliente_list')  # 👈 O donde quieras redirigir
 
     # Filtros y paginación para Documentos
     docs_query = request.GET.get('docs_q')

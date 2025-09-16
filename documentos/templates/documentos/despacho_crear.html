@@ -1,0 +1,216 @@
+<!-- documentos/templates/documentos/despacho_crear.html -->
+{% extends 'base_minimal.html' %}
+{% block title %}Crear Reporte de Despacho{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-truck"></i> Crear Reporte de Despacho</h2>
+    <div>
+        <a href="{% url 'documentos:despacho_lista' %}" class="btn btn-secondary">
+            <i class="fas fa-list"></i> Listado
+        </a>
+    </div>
+</div>
+
+<p><strong>Repartidor:</strong> {{ repartidor.get_full_name|default:repartidor.username }}</p>
+
+<div class="row">
+    <!-- Columna 1: Búsqueda de documentos -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white"><strong>Almacén</strong></div>
+            <div class="card-body">
+                <form method="get" class="mb-3">
+                    <!-- ✅ Mantiene el repartidor al buscar -->
+                    <input type="hidden" name="repartidor_id" value="{{ repartidor.id }}">
+
+                    <div class="input-group">
+                        <input
+                            type="text"
+                            name="q"
+                            class="form-control"
+                            placeholder="Buscar cliente, número..."
+                            value="{{ query }}"
+                            id="search-input"
+                        >
+                        <button class="btn btn-outline-secondary" type="submit">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                        <!-- Botón Limpiar (solo si hay búsqueda) -->
+                        {% if query %}
+                            <a
+                                href="?repartidor_id={{ repartidor.id }}"
+                                class="btn btn-outline-danger"
+                                title="Limpiar búsqueda"
+                                onclick="document.getElementById('search-input').value='';">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                </form>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        
+                        <thead>
+                            <tr>
+                                <th>Doc</th>
+                                <th>Cliente</th>
+                                <th>Total</th>
+                                <th>Saldo</th>
+                                <th>Agregar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in documentos %}
+                            <tr>
+                                <td>{{ doc.get_numero_completo }}</td>
+                                <td>{{ doc.cliente.nombre|truncatechars:20 }}</td>
+                                <td>S/ {{ doc.monto_total|floatformat:2 }}</td>
+                                <td class="fw-bold text-danger">S/ {{ doc.get_saldo_pendiente|floatformat:2 }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-success abrir-modal"
+                                            data-id="{{ doc.pk }}"
+                                            data-nombre="{{ doc.cliente.nombre }}"
+                                            data-total="{{ doc.monto_total }}"
+                                            data-saldo="{{ doc.get_saldo_pendiente|floatformat:2 }}">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5">No hay documentos pendientes.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <!-- Paginación -->
+                    <!-- Paginación -->
+                    {% if is_paginated %}
+                    <nav class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?repartidor_id={{ repartidor.id }}&q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}">
+                                    &laquo; Anterior
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled"><span class="page-link">&laquo; Anterior</span></li>
+                            {% endif %}
+            
+                            <li class="page-item active">
+                                <span class="page-link">Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+                            </li>
+            
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?repartidor_id={{ repartidor.id }}&q={{ query|urlencode }}&page={{ page_obj.next_page_number }}">
+                                    Siguiente &raquo;
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled"><span class="page-link">Siguiente &raquo;</span></li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div> <!-- ✅ Fin correcto de col-md-6 -->
+
+
+
+
+    <!-- Columna 2: Documentos asignados -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white"><strong>Documentos Asignados</strong></div>
+            <div class="card-body">
+                {% if detalles %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Doc</th>
+                                    <th>Pedido</th>
+                                    <th>Saldo Pendiente</th> <!-- ✅ Cambiado de "Total" -->
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for det in detalles %}
+                                <tr>
+                                    <td>{{ det.documento.get_numero_completo }}</td>
+                                    <td>{{ det.numero_pedido }}</td>
+                                <td class="fw-bold text-danger">
+                                    S/ {{ det.documento.get_saldo_pendiente|floatformat:2 }}
+                                </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3">
+                        <strong>Total:</strong> S/ {{ despacho.total_enviado|floatformat:2 }}
+                    </div>
+                {% else %}
+                    <p>No hay documentos asignados aún.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Agregar -->
+<div class="modal fade" id="modalAgregar">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formAgregar" method="post" action="{% url 'documentos:despacho_agregar_documento' despacho.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="documento_id" id="docIdInput">
+                <div class="modal-header">
+                    <h5 class="modal-title">Agregar a Despacho</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Documento:</strong> <span id="docInfo"></span></p>
+                    <p><strong>Cliente:</strong> <span id="clienteInfo"></span></p>
+                    <p><strong>Total:</strong> S/ <span id="totalInfo"></span></p>
+                    <p><strong>Saldo Pendiente:</strong> S/ <span id="saldoInfo"></span></p>
+                    <div class="mb-3">
+                        <label>Número de Pedido</label>
+                        <input type="text" name="numero_pedido" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label>Notas</label>
+                        <textarea name="notas" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Agregar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = new bootstrap.Modal(document.getElementById('modalAgregar'));
+    document.querySelectorAll('.abrir-modal').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const docId = this.dataset.id;
+            document.getElementById('docIdInput').value = docId;
+            document.getElementById('docInfo').textContent = this.closest('tr').querySelectorAll('td')[0].textContent;
+            document.getElementById('clienteInfo').textContent = this.dataset.nombre;
+            document.getElementById('totalInfo').textContent = this.dataset.total;
+            document.getElementById('saldoInfo').textContent = this.dataset.saldo;
+            modal.show();
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -3,6 +3,8 @@ from django.contrib.admin import SimpleListFilter
 from .models import Documento
 from clientes.models import Cliente
 from cobradores.models import Cobrador
+from django.db import models
+from django.utils import timezone
 
 
 # Filtro personalizado para Estado
@@ -31,10 +33,17 @@ class EstadoFilter(SimpleListFilter):
 @admin.register(Documento)
 class DocumentoAdmin(admin.ModelAdmin):
     list_display = (
-        'get_tipo_display', 'get_numero_completo', 'cliente',
-        'monto_total', 'monto_pagado', 'monto_devolucion',
-        'get_saldo_pendiente', 'get_estado', 'get_dias_restantes',
-        'fecha_emision', 'fecha_vencimiento'
+        'get_tipo_display', 
+        'get_numero_completo', 
+        'cliente',
+        'monto_total', 
+        'monto_pagado', 
+        'monto_devolucion',
+        'get_saldo_pendiente', 
+        'get_estado', 
+        'get_dias_restantes',  # ✅ Nombre del método en admin
+        'fecha_emision', 
+        'fecha_vencimiento'
     )
     list_filter = ('tipo', EstadoFilter, 'fecha_emision', 'fecha_vencimiento', 'cliente')
     search_fields = ('numero', 'serie', 'cliente__nombre', 'cliente__dni_ruc')
@@ -51,31 +60,30 @@ class DocumentoAdmin(admin.ModelAdmin):
     get_numero_completo.short_description = 'Número'
 
     def get_saldo_pendiente(self, obj):
-        return f"S/ {obj.get_saldo_pendiente():,.2f}"
+        saldo = obj.get_saldo_pendiente()
+        return f"S/ {saldo:,.2f}"
     get_saldo_pendiente.short_description = 'Saldo'
 
     def get_estado(self, obj):
         estado = obj.get_estado()
-        if estado == 'pagado':
-            return 'Pagado'
-        elif estado == 'vencido':
-            return 'Vencido'
-        else:
-            return 'Pendiente'
+        display = {
+            'pagado': 'Pagado',
+            'pago_parcial': 'Pago Parcial',
+            'vencido': 'Vencido',
+            'pendiente': 'Pendiente'
+        }
+        return display.get(estado, 'Desconocido')
     get_estado.short_description = 'Estado'
-    get_estado.admin_order_field = 'fecha_vencimiento'  # Solo para ordenar por fecha, no por estado real
+    get_estado.admin_order_field = 'fecha_vencimiento'
 
+    # ✅ CORREGIDO: get_dias_restantes es una @property, no un método
     def get_dias_restantes(self, obj):
-        dias = obj.get_dias_restantes()
+        dias = obj.get_dias_restantes  # ✅ Sin paréntesis
         if dias > 0:
             return f"{dias} días"
         elif dias == 0:
             return "Hoy"
         else:
             return f"{abs(dias)} días vencido"
-    get_dias_restantes.short_description = 'Días'
-
-
-# Asegúrate de importar models y timezone
-from django.db import models
-from django.utils import timezone
+    get_dias_restantes.short_description = 'Días Restantes'
+    get_dias_restantes.admin_order_field = 'fecha_vencimiento'  # Ordenar por fecha de vencimiento

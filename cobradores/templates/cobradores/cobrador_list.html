@@ -77,10 +77,17 @@
                                     <a href="{% url 'cobradores:cobrador_update' cobrador.pk %}" class="btn btn-sm btn-warning">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <a href="{% url 'cobradores:cobrador_delete' cobrador.pk %}" class="btn btn-sm btn-danger"
-                                       onclick="return confirm('¿Estás seguro de eliminar a {{ cobrador.nombre }}?');">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
+                                    {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'maria' %}
+                                        <a href="{% url 'cobradores:cobrador_delete' cobrador.pk %}" 
+                                        class="btn btn-sm btn-danger"
+                                        onclick="return confirm('¿Eliminar cobrador {{ cobrador.nombre }}?');">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    {% else %}
+                                        <button class="btn btn-sm btn-secondary" disabled title="Sin permiso">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -126,11 +133,15 @@
                                        class="btn btn-sm btn-warning">
                                         <i class="fas fa-edit"></i> Editar
                                     </a>
-                                    <a href="{% url 'cobradores:cobrador_delete' cobrador.pk %}" 
-                                       class="btn btn-sm btn-danger"
-                                       onclick="return confirm('¿Estás seguro de eliminar a {{ cobrador.nombre }}?');">
-                                        <i class="fas fa-trash"></i> Eliminar
-                                    </a>
+                                    {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'maria' %}
+                                        <form method="post" action="{% url 'cobradores:cobrador_delete' cobrador.pk %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger btn-sm"
+                                                    onclick="return confirm('¿Eliminar cobrador {{ cobrador.nombre }}?');">
+                                                <i class="fas fa-trash"></i> Eliminar
+                                            </button>
+                                        </form>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>

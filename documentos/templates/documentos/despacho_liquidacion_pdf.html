@@ -1,0 +1,71 @@
+<!-- documentos/templates/documentos/despacho_liquidacion_pdf.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Liquidación de Reparto</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2cm; }
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        .info { margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .total { font-weight: bold; margin-top: 20px; font-size: 1.1em; }
+        .footer { margin-top: 50px; font-size: 0.9em; color: #666; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>LIQUIDACIÓN DE REPARTO</h2>
+        <p><strong>Empresa:</strong> Tu Empresa S.A.C.</p>
+    </div>
+
+    <div class="info">
+        <p><strong>Repartidor:</strong> {{ despacho.repartidor.get_full_name|default:despacho.repartidor.username }}</p>
+        <p><strong>Fecha:</strong> {{ despacho.fecha|date:"d/m/Y" }}</p>
+        <p><strong>Creado por:</strong> {{ despacho.creado_por.get_full_name|default:despacho.creado_por.username }}</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Documento</th>
+                <th>Cliente</th>
+                <th>Total</th>
+                <th>Cobrado</th>
+                <th>Medio</th>
+                <th>Saldo</th>
+                <th>Observaciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for det in detalles %}
+            <tr>
+                <td>{{ det.documento.get_numero_completo }}</td>
+                <td>{{ det.cliente.nombre }}</td>
+                <td>S/ {{ det.documento.monto_total|floatformat:2 }}</td>
+                <td>S/ {{ det.cobrado|floatformat:2 }}</td>
+                <td>{{ det.get_medio_pago_display|default:"-" }}</td>
+                <td>S/ {{ det.documento.get_saldo_pendiente|floatformat:2 }}</td>
+                <td>{{ det.observaciones|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="total">
+        <p><strong>Total Enviado:</strong> S/ {{ despacho.total_enviado|floatformat:2 }}</p>
+        <p><strong>Total Cobrado:</strong> S/ {{ despacho.total_cobrado|floatformat:2 }}</p>
+        <p><strong>Pendiente:</strong> S/ {{ despacho.saldo_pendiente|floatformat:2 }}</p>
+    </div>
+
+    <div class="footer">
+        <p>Firma del repartidor: ___________________________</p>
+        <p>Firma del encargado: ___________________________</p>
+        <p>Fecha: {{ despacho.fecha|date:"d/m/Y" }}</p>
+    </div>
+
+</body>
+</html>

@@ -1,4 +1,12 @@
+import calendar
 from django.shortcuts import render, get_object_or_404, redirect
+
+
+from datetime import date, time
+
+import datetime
+from django.utils import timezone
+
 from django.contrib import messages
 from django.db import transaction
 from django.http import HttpResponse
@@ -23,7 +31,10 @@ from decimal import Decimal
 from openpyxl import Workbook
 from django.http import HttpResponse
 from calendar import monthrange
-from datetime import datetime
+
+from decimal import Decimal, InvalidOperation
+from .utils import generar_correlativo  # ✅ Asegúrate de tener esta función
+from django.http import JsonResponse
 
 from clientes.utils import registrar_log  # ✅ Importar
 from django.contrib.auth.decorators import login_required
@@ -33,6 +44,214 @@ from django.contrib.auth.decorators import permission_required
 from clientes.models import LogActividad
 from django.db.models import Count, Sum, Max  # ✅ Usamos agregaciones de Django
 
+from .models import MetaMensual
+from datetime import date
+
+import traceback  # ✅ Para ver el error completo
+
+
+from django.contrib.admin.views.decorators import staff_member_required
+
+
+from .models import PlanillaCierre, DepositoParcial, Cobro
+
+
+
+from django.template.loader import render_to_string
+from weasyprint import HTML
+import os
+
+from django.http import HttpResponseForbidden
+
+
+# @staff_member_required
+# def historial_metas(request):
+@login_required
+def historial_metas(request):
+    # ✅ Permitir acceso si es staff, superuser o pertenece al grupo "Encargados Reparto"
+    if not (
+        request.user.is_staff or
+        request.user.is_superuser or
+        request.user.groups.filter(name='Encargados Reparto').exists()
+    ):
+        # return HttpResponseForbidden("No tienes permiso para acceder a esta página.")
+        return render(request, 'cobros/no_permiso.html', {
+            'titulo': 'Acceso denegado',
+            'mensaje': 'No tienes permiso para acceder a esta página.',
+            'url_anterior': request.META.get('HTTP_REFERER')  # Página de donde vino
+        })
+
+
+    
+    metas = MetaMensual.objects.all().order_by('-mes')
+    data_metas = []
+
+    for meta in metas:
+        primer_dia = meta.mes
+        _, last_day = monthrange(primer_dia.year, primer_dia.month)
+        ultimo_dia = primer_dia.replace(day=last_day)
+
+        # ✅ Corregido: usar datetime.datetime.combine y datetime.time.min/max
+        fecha_inicio = timezone.make_aware(
+            datetime.datetime.combine(primer_dia, datetime.datetime.min.time())
+        )
+        fecha_fin = timezone.make_aware(
+            datetime.datetime.combine(ultimo_dia, datetime.datetime.max.time())
+        )
+
+        cobros_mes = Cobro.objects.filter(
+            fecha__gte=fecha_inicio,
+            fecha__lte=fecha_fin
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+        porcentaje = 0
+        if meta.monto_objetivo > 0:
+            porcentaje = min((cobros_mes / meta.monto_objetivo) * 100, 100)
+
+        data_metas.append({
+            'meta': meta,
+            'cobrado': cobros_mes,
+            'porcentaje': porcentaje
+        })
+
+    return render(request, 'cobros/historial_metas.html', {
+        'data_metas': data_metas
+    })
+
+
+
+# @staff_member_required
+# def detalle_meta_mes(request, year, month):
+
+
+@login_required
+def detalle_meta_mes(request, year, month):
+    # ✅ Verificar permisos: staff, superuser o encargado de reparto
+    if not (
+        request.user.is_staff or
+        request.user.is_superuser or
+        request.user.groups.filter(name='Encargados Reparto').exists()
+    ):
+        return render(request, 'cobros/no_permiso.html', {
+            'titulo': 'Acceso denegado',
+            'mensaje': 'No tienes permiso para acceder a esta página.',
+            'url_anterior': request.META.get('HTTP_REFERER')  # Página de donde vino
+        })
+    
+    try:
+        # ✅ Convertir a entero
+        year = int(year)
+        month = int(month)
+    except (ValueError, TypeError) as e:
+        return render(request, 'cobros/detalle_meta_mes.html', {
+            'error': f'Año o mes inválido: {year}/{month}',
+        }, status=400)
+
+    try:
+        # ✅ Validar mes
+        if month < 1 or month > 12:
+            return render(request, 'cobros/detalle_meta_mes.html', {
+                'error': f'Mes inválido: {month}. Debe estar entre 1 y 12.',
+            }, status=400)
+
+        # ✅ Fecha del mes
+        mes_fecha = datetime.datetime(year, month, 1).date()  # ✅ Corregido
+
+        # ✅ Intentar obtener la meta
+        try:
+            meta = MetaMensual.objects.get(mes=mes_fecha)
+        except MetaMensual.DoesNotExist:
+            meta = None
+
+        # ✅ Fechas de inicio y fin del mes
+        _, last_day = calendar.monthrange(year, month)
+        fecha_inicio = timezone.make_aware(
+            datetime.datetime(year, month, 1, 0, 0, 0)  # ✅ Corregido
+        )
+        fecha_fin = timezone.make_aware(
+            datetime.datetime(year, month, last_day, 23, 59, 59)  # ✅ Corregido
+        )
+
+        # ✅ Cobros del mes agrupados por cobrador
+        cobros_por_cobrador = (
+            Cobro.objects
+            .filter(
+                fecha__gte=fecha_inicio,
+                fecha__lte=fecha_fin,
+                cobrador__isnull=False  # Asegúrate de que cobrador no sea None
+            )
+            .values('cobrador__nombre', 'cobrador__id')
+            .annotate(total=Sum('monto'))
+            .order_by('-total')
+        )
+
+        total_mes = sum(c['total'] for c in cobros_por_cobrador)
+
+        # ✅ Renderizar
+        return render(request, 'cobros/detalle_meta_mes.html', {
+            'meta': meta,
+            'year': year,
+            'month': month,
+            'month_name': mes_fecha.strftime('%B'),
+            'cobros_por_cobrador': cobros_por_cobrador,
+            'total_mes': total_mes,
+        })
+
+    except Exception as e:
+        # ✅ Captura cualquier error y muéstralo
+        error_msg = str(e)
+        print("❌ Error en detalle_meta_mes:", error_msg)
+        print("📌 Detalle del error:")
+        import traceback
+        traceback.print_exc()
+
+        return render(request, 'cobros/detalle_meta_mes.html', {
+            'error': f'Error interno: {error_msg}',
+        }, status=500)
+
+
+
+
+
+
+@staff_member_required
+def meta_create_or_update(request):
+    today = date.today()
+    mes_actual = today.replace(day=1)
+
+    # Obtener o crear la meta del mes
+    meta, created = MetaMensual.objects.get_or_create(
+        mes=mes_actual,
+        defaults={'monto_objetivo': 0}
+    )
+
+    if request.method == 'POST':
+        monto = request.POST.get('monto_objetivo')
+        try:
+            monto = float(monto)
+            if monto < 0:
+                raise ValueError("El monto no puede ser negativo")
+            meta.monto_objetivo = monto
+            meta.save()
+            messages.success(request, f'Meta mensual actualizada a S/ {monto:,.2f}')
+        except (ValueError, TypeError):
+            messages.error(request, 'Monto inválido')
+
+        return redirect('cobros:reporte_cartera')
+
+    return render(request, 'cobros/meta_form.html', {
+        'meta': meta,
+        'created': created
+    })
+
+
+
+
+
+def obtener_proximo_correlativo(request):
+    """Devuelve el próximo correlativo disponible"""
+    proximo = generar_correlativo()
+    return JsonResponse({'correlativo': proximo})
 
 
 
@@ -57,6 +276,8 @@ def log_actividad(request):
 
 
 
+from .utils import generar_correlativo  # ✅ Importa arriba
+
 @transaction.atomic
 def cobro_create(request):
     documento_inicial = None
@@ -67,19 +288,28 @@ def cobro_create(request):
         if form.is_valid():
             cobro = form.save(commit=False)
             documento = cobro.documento
-
             saldo_pendiente = documento.get_saldo_pendiente()
-            if cobro.monto > saldo_pendiente:
-                messages.error(
-                    request,
-                    f"El monto no puede exceder el saldo pendiente de S/ {saldo_pendiente:,.2f}."
-                )
+
+            if cobro.monto <= 0:
+                messages.error(request, "El monto debe ser mayor a 0.")
             else:
+                if cobro.monto > saldo_pendiente:
+                    exceso = cobro.monto - saldo_pendiente
+                    messages.warning(
+                        request,
+                        f"Pago mayor al saldo. S/ {exceso:.2f} se registrará como saldo a favor del cliente."
+                    )
+
+                # ✅ Asignar quién registró este pago
+                cobro.usuario_registro = request.user  # 👈 ¡Este es el cambio clave!
+
+                # ✅ Generar correlativo SOLO aquí, al final
+                cobro.correlativo = generar_correlativo()
                 cobro.save()
 
                 # ✅ Registrar log
                 registrar_log(
-                    usuario=request.user,  # 👈 El usuario logueado
+                    usuario=request.user,
                     cobrador=cobro.cobrador,
                     categoria='cobro',
                     accion='Registró pago',
@@ -132,7 +362,7 @@ def cobro_create(request):
         'documento_inicial_data': documento_inicial_data,
     })
 
-from django.db.models import Q, Sum  # ✅ Asegúrate de tener Sum
+
 
 def cobro_list(request):
     query = request.GET.get('q', '')
@@ -174,10 +404,6 @@ def cobro_list(request):
     # Calcular total cobrado
     total_cobrado = cobros.aggregate(total=Sum('monto'))['total'] or 0
 
-
-
-
-
     # ✅ Calcular cuántos documentos tiene cada referencia
     referencia_count = {}
     for cobro in cobros:
@@ -186,13 +412,6 @@ def cobro_list(request):
             if ref not in referencia_count:
                 referencia_count[ref] = 0
             referencia_count[ref] += 1
-
-
-
-
-
-
-
 
     # Paginación
     paginator = Paginator(cobros, 20)
@@ -256,9 +475,9 @@ def cobro_export_excel(request):
     """
     # === 1. Obtener filtros (igual que en cobro_list) ===
     query = request.GET.get('q', '')
-    cobrador_id = request.GET.get('cobrador')
-    fecha_desde = request.GET.get('fecha_desde')
-    fecha_hasta = request.GET.get('fecha_hasta')
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
+    cobrador_id = request.GET.get('cobrador', '')
 
     # === 2. Obtener y filtrar cobros ===
     cobros = Cobro.objects.select_related(
@@ -269,21 +488,23 @@ def cobro_export_excel(request):
     if query:
         cobros = cobros.filter(
             Q(documento__numero__icontains=query) |
-            Q(documento__serie__icontains=query) |
             Q(documento__cliente__nombre__icontains=query) |
-            Q(referencia__icontains=query) |
-            Q(notas__icontains=query)  # ✅ Opcional: buscar también en notas
+            Q(documento__cliente__dni_ruc__icontains=query) |
+            Q(cobrador__nombre__icontains=query)
         )
-
-    # Filtro por cobrador
-    if cobrador_id:
-        cobros = cobros.filter(cobrador__id=cobrador_id)
 
     # Filtro por fecha
     if fecha_desde:
         cobros = cobros.filter(fecha__date__gte=fecha_desde)
     if fecha_hasta:
         cobros = cobros.filter(fecha__date__lte=fecha_hasta)
+
+    # Filtro por cobrador
+    if cobrador_id:
+        try:
+            cobros = cobros.filter(cobrador_id=int(cobrador_id))
+        except (ValueError, TypeError):
+            pass  # Si no es válido, ignora el filtro
 
     # === 3. Crear libro de Excel ===
     workbook = Workbook()
@@ -298,6 +519,7 @@ def cobro_export_excel(request):
         'Cobrador', 
         'Referencia',
         'Notas',
+        'Tipo de Pago',  # ✅ Nueva columna
         'Fecha Pago', 
         'Fecha Registro'
     ]
@@ -305,21 +527,27 @@ def cobro_export_excel(request):
         cell = sheet.cell(row=1, column=col_num)
         cell.value = header
 
-    # === 5. Agregar datos ===
+    # === 5. Agregar datos con manejo de errores ===
     for cobro in cobros:
+        try:
+            tipo_pago_display = cobro.get_tipo_pago_display() or ""  # ✅ Seguro
+        except:
+            tipo_pago_display = ""
+
         sheet.append([
-            f"{cobro.documento.get_tipo_display()} {cobro.documento.serie}-{cobro.documento.numero}",
+            f"{cobro.documento.get_tipo_display()} {cobro.documento.get_numero_completo()}",
             cobro.documento.cliente.nombre,
             float(cobro.monto),
             cobro.cobrador.nombre,
             cobro.referencia or "",
             cobro.notas or "",
+            tipo_pago_display,  # ✅ Usar el valor seguro
             cobro.fecha.strftime('%d/%m/%Y %H:%M'),
             cobro.creado_en.strftime('%d/%m/%Y %H:%M'),
         ])
 
-    # === 6. Ajustar ancho de columnas (opcional, mejora visual) ===
-    column_widths = [18, 30, 12, 20, 20, 30, 18, 18]
+    # === 6. Ajustar ancho de columnas ===
+    column_widths = [18, 30, 12, 20, 20, 30, 18, 18, 18]
     for i, width in enumerate(column_widths, 1):
         sheet.column_dimensions[chr(64 + i)].width = width
 
@@ -328,6 +556,11 @@ def cobro_export_excel(request):
     response['Content-Disposition'] = 'attachment; filename=cobros.xlsx'
     workbook.save(response)
     return response
+
+
+
+
+
 
 
 def cobro_export_csv(request):
@@ -360,6 +593,7 @@ def cobro_delete(request, pk):
         documento = cobro.documento
         cliente_nombre = documento.cliente.nombre
         documento_numero = f"{documento.get_tipo_display()} {documento.get_numero_completo()}"
+        referencia = cobro.referencia or "Sin referencia"  # ✅ Obtenemos la referencia
         
         cobro.delete()  # ← Aquí se actualiza monto_pagado (vía modelo)
         
@@ -369,7 +603,7 @@ def cobro_delete(request, pk):
             cobrador=cobro.cobrador,
             categoria='cobro',
             accion='Eliminó pago',
-            descripcion=f"Monto: S/ {monto:,.2f}, Documento: {documento_numero}, Cliente: {cliente_nombre}"
+            descripcion=f"Monto: S/ {monto:,.2f}, Documento: {documento_numero}, Cliente: {cliente_nombre}, Referencia: {referencia}"
         )
 
         messages.success(request, f'Pago de S/ {monto:,.2f} eliminado correctamente.')
@@ -408,7 +642,7 @@ def pago_multiple(request):
         ).select_related('cliente').order_by('-fecha_emision')[:10]
 
     # ✅ Paginación
-    paginator = Paginator(documentos, 3)
+    paginator = Paginator(documentos, 10)
     documentos_page = paginator.get_page(page_number)
 
     cobradores = Cobrador.objects.all()
@@ -420,69 +654,108 @@ def pago_multiple(request):
     })
 
 # cobros/views.py
+# cobros/views.py
+# cobros/views.py
+@transaction.atomic
 def registrar_pagos_multiple(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
     try:
         data = request.POST
-        print("🔍 POST completo recibido:", dict(data))  # ✅ Añade esta línea
-
         cobrador_id = data.get('cobrador')
-        cobrador = get_object_or_404(Cobrador, pk=cobrador_id)
+        if not cobrador_id:
+            return JsonResponse({'error': 'Debe seleccionar un cobrador'}, status=400)
 
-        # ✅ Obtener referencia
+        try:
+            cobrador = Cobrador.objects.get(pk=cobrador_id)
+        except Cobrador.DoesNotExist:
+            return JsonResponse({'error': 'Cobrador no válido'}, status=400)
+
         referencia = data.get('referencia', '').strip()
-        notas = data.get('notas', '').strip()  # ✅ Obtener notas
+        if not referencia:
+            return JsonResponse({'error': 'La referencia es requerida'}, status=400)
 
-        print(f"✅ Referencia: '{referencia}'")  # ✅ Depuración
-        print(f"✅ Notas: '{notas}'")             # ✅ Depuración
+        notas = data.get('notas', '').strip()
 
-        pagos = []
         total_registrado = 0
+        errores = []
 
-        for key in data:
-            if key.startswith('pago_'):
-                doc_id = key.replace('pago_', '')
-                monto_str = data[key].replace(',', '.')
-                try:
-                    monto = float(monto_str)
-                    if monto <= 0:
-                        continue
-                except ValueError:
+        pago_keys = [key for key in data.keys() if key.startswith('pago_') and key != 'pago_multiple']
+
+        for key in pago_keys:
+            doc_id_str = key.replace('pago_', '')
+            try:
+                doc_id = int(doc_id_str)
+            except (ValueError, TypeError):
+                errores.append(f"ID de documento inválido: {doc_id_str}")
+                continue
+
+            monto_str = data[key].replace(',', '.')
+            try:
+                monto = Decimal(monto_str)
+                if monto <= 0:
                     continue
+            except (InvalidOperation, ValueError):
+                errores.append(f"Monto inválido para documento {doc_id}: '{data[key]}'")
+                continue
 
-                documento = get_object_or_404(Documento, pk=doc_id)
+            try:
+                documento = Documento.objects.get(pk=doc_id)
                 saldo = documento.get_saldo_pendiente()
                 if monto > saldo:
-                    return JsonResponse({
-                        'error': f'El monto para {documento.get_tipo_display()} {documento.get_numero_completo} excede el saldo pendiente.'
-                    }, status=400)
+                    print(f"⚠️ Pago mayor al saldo para {documento}: S/ {monto - saldo:.2f}")
 
-                # ✅ Crear cobro con referencia
+                tipo_pago = data.get(f'tipo_pago_{doc_id}', '')
+
+                # ✅ Crear el cobro asignando quién lo registró
                 cobro = Cobro(
                     documento=documento,
                     cobrador=cobrador,
                     monto=monto,
                     fecha=timezone.now(),
-                    referencia=referencia,  # ✅ Guardar referencia
-                    notas=notas  # ✅ Guardar notas
+                    referencia=referencia,
+                    notas=notas,
+                    tipo_pago=tipo_pago,
+                    correlativo=generar_correlativo(),  # ✅ Genera uno por pago
+                    usuario_registro=request.user      # ✅ ¡Este es el cambio clave!
                 )
                 cobro.save()
                 total_registrado += monto
 
+            except Documento.DoesNotExist:
+                errores.append(f"Documento {doc_id} no existe")
+            except Exception as e:
+                errores.append(f"Error con documento {doc_id}: {str(e)}")
+
+        # ✅ Registrar log
+        if total_registrado > 0:
+            try:
+                from clientes.utils import registrar_log
+                registrar_log(
+                    usuario=request.user,
+                    cobrador=cobrador,
+                    categoria='cobro',
+                    accion='Registró pago múltiple',
+                    descripcion=f"Referencia: {referencia}, Total: S/ {total_registrado:.2f}, {len(pago_keys)} documentos, Notas: {notas or '-'}"
+                )
+            except Exception as log_error:
+                print(f"❌ Error al registrar log: {log_error}")
+
+        if errores:
+            return JsonResponse({
+                'success': False,
+                'error': 'Errores al registrar pagos',
+                'detalles': errores
+            }, status=400)
+
         return JsonResponse({
             'success': True,
-            'total_registrado': total_registrado,
-            'redirect_url': request.META.get('HTTP_REFERER', '/')
+            'total_registrado': float(total_registrado),
         })
 
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-    
-
-
-
+        return JsonResponse({'error': 'Error interno del servidor'}, status=500)
 
 
 
@@ -630,8 +903,29 @@ def exportar_por_referencia(request):
 
 
 def reporte_cartera(request):
+
+    # ✅ Usuarios autorizados
+    usuarios_permitidos = ['adminaqp', 'juanc', 'maria']  # 👈 Cambia por los usernames que desees
+
+    if not request.user.is_authenticated or request.user.username not in usuarios_permitidos:
+        messages.warning(request, 'No tienes permiso para acceder al reporte de cartera.')
+        return redirect('clientes:cliente_list')  # 👈 Cambia por tu URL de inicio
+
+    # Si llega aquí, el usuario está autorizado
+    today = timezone.now().date()
+
+
+
+
     """Reporte de Cartera de Cobranzas"""
     today = timezone.now().date()
+
+
+    # ✅ Obtener meta mensual (si existe)
+    try:
+        meta = MetaMensual.objects.get(mes__year=today.year, mes__month=today.month)
+    except MetaMensual.DoesNotExist:
+        meta = None
 
     # === 1. Resumen General ===
     documentos = Documento.objects.all()
@@ -685,8 +979,13 @@ def reporte_cartera(request):
         _, last_day = monthrange(mes.year, mes.month)
         ultimo_dia = mes.replace(day=last_day)
 
-        fecha_desde_dt = timezone.make_aware(datetime.combine(primer_dia, datetime.min.time()))
-        fecha_hasta_dt = timezone.make_aware(datetime.combine(ultimo_dia, datetime.max.time()))
+        # ✅ Corregido: usar datetime.datetime.combine
+        fecha_desde_dt = timezone.make_aware(
+            datetime.datetime.combine(primer_dia, datetime.datetime.min.time())
+        )
+        fecha_hasta_dt = timezone.make_aware(
+            datetime.datetime.combine(ultimo_dia, datetime.datetime.max.time())
+        )
 
         cobros_mes = Cobro.objects.filter(
             fecha__gte=fecha_desde_dt,
@@ -711,6 +1010,7 @@ def reporte_cartera(request):
         'cobradores_data': cobradores_data,
         'evolucion': evolucion,
         'fecha_reporte': today,
+        'meta': meta,  # ✅ Añadido
     }
 
     return render(request, 'cobros/reporte_cartera.html', context)
@@ -773,4 +1073,370 @@ def exportar_cartera_excel(request):
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename=reporte_cartera.xlsx'
     wb.save(response)
+    return response
+
+
+
+
+
+
+
+
+from django.utils import timezone
+from django.db.models import Sum
+from decimal import Decimal
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .models import Cobro, PlanillaCierre, Cobrador, DepositoParcial
+
+from django.contrib.admin.views.decorators import staff_member_required
+
+@login_required
+def cerrar_planilla_del_dia(request):
+    # ✅ Obtener fecha actual en hora local (Perú)
+    hoy = timezone.localtime(timezone.now()).date()
+
+    # ✅ Si es superusuario
+    if request.user.is_superuser or request.user.is_staff:
+        cobradores = Cobrador.objects.all()
+
+        if request.method == 'POST':
+            cobrador_id = request.POST.get('cobrador')
+            if not cobrador_id:
+                messages.error(request, "Debes seleccionar un cobrador.")
+                return redirect('cobros:cerrar_planilla_del_dia')
+
+            try:
+                cobrador = Cobrador.objects.get(pk=cobrador_id)
+            except Cobrador.DoesNotExist:
+                messages.error(request, "Cobrador no válido.")
+                return redirect('cobros:cerrar_planilla_del_dia')
+
+            # ✅ Calcular total cobrado del día (en hora local)
+            inicio_hoy = timezone.make_aware(
+                datetime.datetime.combine(hoy, datetime.time.min)
+            )
+            fin_hoy = timezone.make_aware(
+                datetime.datetime.combine(hoy, datetime.time.max)
+            )
+
+            total_cobrado = Cobro.objects.filter(
+                cobrador=cobrador,
+                fecha__gte=inicio_hoy,
+                fecha__lte=fin_hoy
+            ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+            # Crear o obtener planilla
+            planilla, created = PlanillaCierre.objects.get_or_create(
+                cobrador=cobrador,
+                fecha=hoy,
+                defaults={
+                    'total_cobrado': total_cobrado,
+                    'notas': f'Cierre supervisado por admin - {request.user.username}'
+                }
+            )
+
+            # Si ya existe, actualizar el total
+            if not created:
+                planilla.total_cobrado = total_cobrado
+                planilla.save()
+
+            messages.success(request, f'Cierre generado para {cobrador.nombre}. Total: S/ {total_cobrado:.2f}')
+            return redirect('cobros:planilla_detalle', pk=planilla.pk)
+
+        return render(request, 'cobros/admin_seleccionar_cobrador.html', {
+            'cobradores': cobradores
+        })
+
+    # ✅ Para cobradores normales
+    try:
+        cobrador = request.user.cobrador
+    except:
+        messages.error(request, "No estás asignado como cobrador.")
+        return redirect('home')
+
+    # ✅ Calcular total cobrado (en hora local)
+    inicio_hoy = timezone.make_aware(
+        datetime.datetime.combine(hoy, datetime.time.min)
+    )
+    fin_hoy = timezone.make_aware(
+        datetime.datetime.combine(hoy, datetime.time.max)
+    )
+
+    total_cobrado = Cobro.objects.filter(
+        cobrador=cobrador,
+        fecha__gte=inicio_hoy,
+        fecha__lte=fin_hoy
+    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+    # Crear o obtener planilla
+    planilla, created = PlanillaCierre.objects.get_or_create(
+        cobrador=cobrador,
+        fecha=hoy,
+        defaults={
+            'total_cobrado': total_cobrado,
+            'notas': f'Cierre automático del día {hoy}'
+        }
+    )
+
+    if not created:
+        planilla.total_cobrado = total_cobrado
+        planilla.save()
+
+    messages.info(request, f'Total cobrado: S/ {total_cobrado:.2f}')
+    return redirect('cobros:planilla_detalle', pk=planilla.pk)
+
+
+
+
+@login_required
+def planilla_detalle(request, pk):
+    # ✅ Obtener planilla o 404
+    planilla = get_object_or_404(PlanillaCierre, pk=pk)
+
+    # ✅ Verificar permisos
+    if not (request.user.is_superuser or request.user.is_staff or hasattr(request.user, 'cobrador') and request.user.cobrador == planilla.cobrador):
+        messages.error(request, "No tienes permiso para ver esta planilla.")
+        return redirect('cobros:cobro_list')  # 👈 O a donde quieras redirigir
+
+    # ✅ Obtener depósitos
+    depositos = DepositoParcial.objects.filter(planilla=planilla).order_by('-fecha')
+
+    # ✅ Si es POST, procesar depósito
+    if request.method == 'POST':
+        monto_str = request.POST.get('monto_deposito')
+        notas = request.POST.get('notas', '')
+
+        try:
+            monto = Decimal(monto_str)
+            if monto <= 0:
+                messages.error(request, "El monto debe ser mayor a 0.")
+            elif planilla.total_depositado + monto > planilla.total_cobrado:
+                messages.error(
+                    request,
+                    f"El depósito excedería el total cobrado. "
+                    f"Solo puedes depositar hasta S/ {(planilla.total_cobrado - planilla.total_depositado):.2f} más."
+                )
+            else:
+                # ✅ Registrar depósito
+                DepositoParcial.objects.create(
+                    planilla=planilla,
+                    monto=monto,
+                    creado_por=request.user,
+                    notas=notas
+                )
+                planilla.total_depositado += monto
+                planilla.notas = notas
+                planilla.actualizar_estado()
+                messages.success(request, f"Depósito de S/ {monto:.2f} registrado.")
+
+                # ✅ Registrar en el log de actividad
+                registrar_log(
+                    usuario=request.user,
+                    cobrador=planilla.cobrador,  # El cobrador al que pertenece la planilla
+                    categoria='deposito',
+                    accion='Registró depósito',
+                    descripcion=f"Monto: S/ {monto:.2f}, Planilla: {planilla.fecha}, Cobrador: {planilla.cobrador.nombre}, Notas: {notas or '-'}"
+                )
+
+                return redirect('cobros:planilla_detalle', pk=planilla.pk)  # Evita reenvío
+        except Exception as e:
+            messages.error(request, "Monto inválido.")
+            return redirect('cobros:planilla_detalle', pk=planilla.pk)
+
+    # ✅ Renderizar siempre una respuesta
+    return render(request, 'cobros/planilla_detalle.html', {
+        'planilla': planilla,
+        'depositos': depositos
+    })
+
+
+
+@login_required
+def historial_planillas(request):
+    try:
+        cobrador = request.user.cobrador
+        planillas = PlanillaCierre.objects.filter(
+            cobrador=cobrador,
+            estado__in=['pendiente', 'parcial']
+        ).order_by('-fecha')
+    except:
+        planillas = PlanillaCierre.objects.none()
+
+    return render(request, 'cobros/historial_planillas.html', {
+        'planillas': planillas
+    })
+
+
+
+@login_required
+def mis_cierres(request):
+    try:
+        cobrador = request.user.cobrador
+        planillas = PlanillaCierre.objects.filter(cobrador=cobrador).order_by('-fecha')
+    except:
+        planillas = PlanillaCierre.objects.none()
+
+    # ✅ Paginación
+    paginator = Paginator(planillas, 20)  # 20 por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # ✅ Calcular conteos
+    total = planillas.count()
+    parciales = planillas.filter(estado='parcial').count()
+    pendientes = planillas.filter(estado='pendiente').count()
+    completados = planillas.filter(estado='completado').count()
+
+    return render(request, 'cobros/mis_cierres.html', {
+        'page_obj': page_obj,
+        'planillas': page_obj,  # Para compatibilidad con el template
+        'total': total,
+        'parciales': parciales,
+        'pendientes': pendientes,
+        'completados': completados,
+    })
+
+
+@staff_member_required
+def admin_reporte_planillas(request):
+    planillas = PlanillaCierre.objects.all().select_related('cobrador').order_by('-fecha')
+
+    # Filtros
+    cobrador_id = request.GET.get('cobrador')
+    fecha = request.GET.get('fecha')
+    estado = request.GET.get('estado')
+
+    if cobrador_id:
+        planillas = planillas.filter(cobrador_id=cobrador_id)
+    if fecha:
+        planillas = planillas.filter(fecha=fecha)
+    if estado:
+        planillas = planillas.filter(estado=estado)
+
+    cobradores = Cobrador.objects.all().order_by('nombre')
+
+    # ✅ Paginación
+    paginator = Paginator(planillas, 20)  # 20 por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'cobros/admin_reporte_planillas.html', {
+        'page_obj': page_obj,
+        'planillas': page_obj,  # ✅ Para mantener compatibilidad con el template
+        'cobradores': cobradores,
+        'filtros': request.GET
+    })
+
+
+
+@staff_member_required
+def reabrir_planilla(request, pk):
+    planilla = get_object_or_404(PlanillaCierre, pk=pk)
+    
+    if planilla.estado != 'pendiente':
+        # Eliminar depósitos parciales
+        planilla.depositoparcial_set.all().delete()
+        
+        # Reiniciar valores
+        planilla.total_depositado = Decimal('0.00')
+        planilla.estado = 'pendiente'
+        planilla.save()
+        
+        # ✅ Registrar en el log
+        registrar_log(
+            usuario=request.user,
+            categoria='planilla',
+            accion='Reabrió cierre',
+            descripcion=f"Planilla ID: {pk}, Fecha: {planilla.fecha}, Cobrador: {planilla.cobrador.nombre}"
+        )
+        
+        messages.success(request, f"Cierre del {planilla.fecha} reabierto. El cobrador puede corregirlo.")
+    else:
+        messages.info(request, "El cierre ya está pendiente.")
+    
+    return redirect('cobros:admin_reporte_planillas')
+
+
+
+
+
+
+
+def planilla_detalle_pdf(request, pk):
+    planilla = get_object_or_404(PlanillaCierre, pk=pk)
+    
+    # Verificar permisos
+    # ✅ Permitir a superusuario, staff o el cobrador asignado
+    if not (request.user.is_superuser or 
+            request.user.is_staff or 
+            (hasattr(request.user, 'cobrador') and request.user.cobrador == planilla.cobrador)):
+        messages.error(request, "No tienes permiso para ver este cierre.")
+        return redirect('cobros:cobro_list')
+
+    depositos = DepositoParcial.objects.filter(planilla=planilla).order_by('fecha')
+
+    # Renderizar a HTML
+    html_string = render_to_string('cobros/planilla_detalle_pdf.html', {
+        'planilla': planilla,
+        'depositos': depositos,
+        'request': request  # Necesario para estáticos
+    })
+
+    # Generar PDF
+    html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+    pdf = html.write_pdf()
+
+    # Preparar respuesta
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="cierre_{planilla.cobrador.nombre}_{planilla.fecha}.pdf"'
+    return response
+
+
+
+
+
+def admin_reporte_planillas_pdf(request):
+    if not request.user.is_superuser:
+        messages.error(request, "No tienes permiso para ver este reporte.")
+        return redirect('cobros:cobro_list')
+
+    # === 1. Obtener filtros ===
+    cobrador_id = request.GET.get('cobrador')
+    fecha = request.GET.get('fecha')
+    estado = request.GET.get('estado')
+
+    # === 2. Obtener planillas con filtros ===
+    planillas = PlanillaCierre.objects.all().select_related('cobrador').order_by('-fecha')
+
+    if cobrador_id:
+        planillas = planillas.filter(cobrador_id=cobrador_id)
+    if fecha:
+        planillas = planillas.filter(fecha=fecha)
+    if estado:
+        planillas = planillas.filter(estado=estado)
+
+    cobradores = Cobrador.objects.all().order_by('nombre')
+    cobrador_filtro = cobradores.filter(id=cobrador_id).first() if cobrador_id else None
+
+    # === 3. Renderizar a HTML ===
+    html_string = render_to_string('cobros/admin_reporte_planillas_pdf.html', {
+        'planillas': planillas,
+        'cobrador_filtro': cobrador_filtro,
+        'fecha_filtro': fecha,
+        'estado_filtro': estado,
+        'estado_display': dict(PlanillaCierre.estado.field.choices).get(estado),
+        'total_cobrado': planillas.aggregate(total=Sum('total_cobrado'))['total'] or Decimal('0.00'),
+        'total_depositado': planillas.aggregate(total=Sum('total_depositado'))['total'] or Decimal('0.00'),
+        'total_pendiente': sum(p.saldo_pendiente for p in planillas),
+        'request': request
+    })
+
+    # === 4. Generar PDF ===
+    html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+    pdf = html.write_pdf()
+
+    # === 5. Preparar respuesta ===
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="reporte_planillas_cierre.pdf"'
     return response

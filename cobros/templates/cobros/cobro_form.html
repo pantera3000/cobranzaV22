@@ -52,10 +52,12 @@ DEBUG: documento_inicial_data = {{ documento_inicial_data }}
                     {% csrf_token %}
                     <!-- ✅ Campo oculto para redirigir después de guardar -->
                     <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}">
+
                     <div class="row">
                         <div class="col-md-6">
                             <!-- Campo de búsqueda -->
-                            <div class="mb-3">
+                            <!-- Campo de búsqueda -->
+                            <div class="mb-3 position-relative" id="documento-container">
                                 <label for="search-documento" class="form-label">Documento a pagar</label>
                                 <input
                                     type="text"
@@ -71,15 +73,38 @@ DEBUG: documento_inicial_data = {{ documento_inicial_data }}
 
                             {{ form.cobrador|as_crispy_field }}
                             {{ form.fecha|as_crispy_field }}
+
+                            <!-- ✅ Correlativo: informativo, no se asigna aquí -->
+                            <div class="mb-3">
+                                <label for="id_correlativo">Correlativo:</label>
+                                <div class="form-control" style="background-color: #f8f9fa; font-weight: 500;">
+                                    Se generará automáticamente al guardar
+                                </div>
+                                <small class="text-muted">Ej: 2025-00036</small>
+                                <!-- Campo oculto para el backend -->
+                                <input type="hidden" name="correlativo" id="id_correlativo">
+                            </div>
                         </div>
+
                         <div class="col-md-6">
                             {{ form.monto|as_crispy_field }}
+
+                            <div class="mb-3">
+                                <label for="id_tipo_pago" class="form-label">Tipo de Pago</label>
+                                <select name="tipo_pago" id="id_tipo_pago" class="form-control">
+                                    <option value="">---------</option>
+                                    <option value="efectivo" {% if form.tipo_pago.value == 'efectivo' %}selected{% endif %}>Efectivo</option>
+                                    <option value="yape" {% if form.tipo_pago.value == 'yape' %}selected{% endif %}>Yape</option>
+                                    <option value="deposito" {% if form.tipo_pago.value == 'deposito' %}selected{% endif %}>Depósito</option>
+                                    <option value="otro" {% if form.tipo_pago.value == 'otro' %}selected{% endif %}>Otro</option>
+                                </select>
+                            </div>
 
                             <!-- ✅ Campo Notas Adicionales -->
                             <div class="mb-3">
                                 <label for="{{ form.notas.id_for_label }}" class="form-label">{{ form.notas.label }}</label>
                                 {{ form.notas }}
-                                    <small id="notas-counter" class="text-muted d-block text-end mt-1">0/60</small>
+                                <small id="notas-counter" class="text-muted d-block text-end mt-1">0/60</small>
                                 {% if form.notas.help_text %}
                                     <small class="form-text text-muted">{{ form.notas.help_text }}</small>
                                 {% endif %}
@@ -97,11 +122,9 @@ DEBUG: documento_inicial_data = {{ documento_inicial_data }}
                             </div>
                         </div>
                     </div>
-                    <!-- Campo oculto para next -->
-                    <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}">
 
+                    <!-- Botón Volver y Guardar -->
                     <div class="d-flex justify-content-between mt-3">
-                        <!-- Botón Volver dinámico -->
                         {% if request.GET.next %}
                             <a href="{{ request.GET.next }}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left"></i> Volver
@@ -163,11 +186,9 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (e) {
             console.error('❌ Error al cargar documento inicial:', e);
         }
-    } else {
-        console.warn('⚠️ No hay documento inicial o está vacío');
     }
 
-    // ✅ Búsqueda dinámica (tu código existente)
+    // ✅ Búsqueda dinámica
     const searchInput = document.getElementById('search-documento');
     const resultsBox = document.getElementById('documento-results');
     const documentoId = document.getElementById('documento-id');
@@ -228,15 +249,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // ✅ Contador de caracteres para el campo "notas"
+    // ✅ Contador de caracteres para "notas"
     const notasInput = document.getElementById('{{ form.notas.id_for_label }}');
     const counter = document.getElementById('notas-counter');
     
     if (notasInput && counter) {
-        // Mostrar longitud inicial
         counter.textContent = notasInput.value.length + '/60';
-        
-        // Actualizar al escribir
         notasInput.addEventListener('input', function () {
             counter.textContent = this.value.length + '/60';
         });

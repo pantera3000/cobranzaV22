@@ -5,39 +5,69 @@
 {% block title %}Detalle de {{ documento.get_tipo_display }} {{ documento.numero }}{% endblock %}
 
 {% block content %}
+<!-- Hero Header: Número grande y destacado -->
+<!-- Hero Header: Número grande y en una sola línea -->
+<div class="text-center mb-4">
+    <div class="bg-white border border-2 border-primary rounded-4 p-3 shadow-sm">
+        <h2 class="mb-0">
+            <span class="text-primary fw-bold">{{ documento.get_tipo_display }}</span>
+            <span class="text-dark fw-bold mx-2">•</span>
+            <span class="text-dark">{{ documento.get_numero_completo }}</span>
+        </h2>
+        <p class="text-muted mb-0 mt-1">
+            <small><strong>Cliente:</strong> {{ documento.cliente.nombre }}</small>
+        </p>
+    </div>
+</div>
+
+<!-- Botones de acción -->
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-file-invoice"></i> Detalle del Documento</h2>
-    <div>
+    <h2 class="mb-0"><i class="fas fa-file-invoice"></i> Información del Documento</h2>
+
+    <div class="d-flex gap-2 flex-wrap">
         <!-- ✅ Botón: Volver atrás -->
-        <button type="button" class="btn btn-outline-secondary me-2" onclick="window.history.back();">
-            <i class="fas fa-arrow-left"></i> Volver
+        <button type="button" class="btn btn-outline-secondary" onclick="window.history.back();" 
+                title="Volver">
+            <i class="fas fa-arrow-left"></i>
+            <span class="d-none d-sm-inline ms-1">Volver</span>
         </button>
 
-        <!-- ✅ Botones de acción directa -->
+        <!-- ✅ Agregar Pago -->
         {% if documento.get_saldo_pendiente > 0 %}
             <a href="{% url 'cobros:cobro_create' %}?documento={{ documento.pk }}&next={{ request.get_full_path|urlencode }}"
-               class="btn btn-success me-2">
-                <i class="fas fa-money-bill-wave"></i> Agregar Pago
-            </a>
-            <a href="{% url 'devoluciones:devolucion_create' %}?documento={{ documento.pk }}&next={{ request.get_full_path|urlencode }}"
-               class="btn btn-primary me-2">
-                <i class="fas fa-undo"></i> Agregar Devolución
+               class="btn btn-success" title="Agregar Pago">
+                <i class="fas fa-money-bill-wave"></i>
+                <span class="d-none d-sm-inline ms-1">Agregar Pago</span>
             </a>
         {% else %}
-            <button class="btn btn-success me-2" disabled title="No hay saldo pendiente">
-                <i class="fas fa-money-bill-wave"></i> Agregar Pago
-            </button>
-            <button class="btn btn-primary me-2" disabled title="No hay saldo pendiente">
-                <i class="fas fa-undo"></i> Agregar Devolución
+            <button class="btn btn-success" disabled title="No hay saldo pendiente">
+                <i class="fas fa-money-bill-wave"></i>
             </button>
         {% endif %}
 
-        <!-- Otros botones -->
-        <a href="{% url 'documentos:documento_list' %}" class="btn btn-secondary me-2">
-            <i class="fas fa-list"></i> Todos
+        <!-- ✅ Agregar Devolución -->
+        {% if documento.get_saldo_pendiente > 0 %}
+            <a href="{% url 'devoluciones:devolucion_create' %}?documento={{ documento.pk }}&next={{ request.get_full_path|urlencode }}"
+               class="btn btn-primary" title="Agregar Devolución">
+                <i class="fas fa-undo"></i>
+                <span class="d-none d-sm-inline ms-1">Devolución</span>
+            </a>
+        {% else %}
+            <button class="btn btn-primary" disabled title="No hay saldo pendiente">
+                <i class="fas fa-undo"></i>
+            </button>
+        {% endif %}
+
+        <!-- ✅ Todos -->
+        <a href="{% url 'documentos:documento_list' %}" class="btn btn-secondary" title="Todos">
+            <i class="fas fa-list"></i>
+            <span class="d-none d-sm-inline ms-1">Todos</span>
         </a>
-        <a href="{% url 'documentos:documento_update' documento.pk %}" class="btn btn-warning">
-            <i class="fas fa-edit"></i> Editar
+
+        <!-- ✅ Editar -->
+        <a href="{% url 'documentos:documento_update' documento.pk %}" class="btn btn-warning" title="Editar">
+            <i class="fas fa-edit"></i>
+            <span class="d-none d-sm-inline ms-1">Editar</span>
         </a>
     </div>
 </div>
@@ -269,10 +299,12 @@
                                 <tr>
                                     <th>Monto</th>
                                     <th>Cobrador</th>
+                                    <th>Correlativo</th>  <!-- ✅ Nueva columna -->
                                     <th>Referencia</th>
                                     <th>Notas</th>
                                     <th>Fecha Pago</th>
                                     <th>Registrado</th>
+                                    <th>Acciones</th> <!-- ✅ Nueva columna -->
                                 </tr>
                             </thead>
                             <tbody>
@@ -285,6 +317,20 @@
                                             {{ cobro.cobrador.nombre }}
                                         </a>
                                     </td>
+
+                                    <td>
+                                        {% if cobro.correlativo %}
+                                            <span class="badge bg-secondary text-white px-3 py-1" style="font-size: 0.85em; font-weight: 500;">
+                                                {{ cobro.correlativo }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">–</span>
+                                        {% endif %}
+                                    </td>
+
+
+
+
                                     <td>
                                         {% if cobro.referencia %}
                                             <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
@@ -311,6 +357,27 @@
                                     </td>
                                     <td>{{ cobro.fecha|date:"d/m/Y H:i" }}</td>
                                     <td class="text-muted">{{ cobro.creado_en|date:"d/m/Y H:i" }}</td>
+
+                                    <!-- ✅ Columna de acciones -->
+                                    <!-- Columna de acciones -->
+                                    <td>
+                                        {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'maria' or user.username == 'carlos' %}
+                                            <form method="post" action="{% url 'cobros:cobro_delete' cobro.pk %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-danger"
+                                                        onclick="return confirm('¿Eliminar pago de S/ {{ cobro.monto|floatformat:2 }}?');"
+                                                        title="Eliminar pago">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-secondary" disabled title="No autorizado">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                        {% endif %}
+                                    </td>
+
+
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -344,6 +411,18 @@
                                     {{ cobro.cobrador.nombre }}
                                 </a>
                             </p>
+
+                            {% if cobro.correlativo %}
+                                <p class="mb-1">
+                                    <strong>Correlativo:</strong>
+                                    <span class="badge bg-secondary text-white px-3 py-1" style="font-size: 0.85em; font-weight: 500;">
+                                        {{ cobro.correlativo }}
+                                    </span>
+                                </p>
+                            {% endif %}
+
+
+
                             {% if cobro.referencia %}
                                 <p class="mb-1">
                                     <strong>Referencia:</strong>
@@ -369,6 +448,26 @@
                             <p class="mb-0 text-muted">
                                 <small>Registrado: {{ cobro.creado_en|date:"d/m/Y H:i" }}</small>
                             </p>
+
+
+                            <!-- ✅ Botón Eliminar (móvil) -->
+                            <!-- ✅ Botón Eliminar (móvil) -->
+                            {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'maria' or user.username == 'carlos' %}
+                                <p class="mb-0">
+                                    <form method="post" action="{% url 'cobros:cobro_delete' cobro.pk %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm"
+                                                onclick="return confirm('¿Eliminar pago de S/ {{ cobro.monto|floatformat:2 }}?');">
+                                            <i class="fas fa-trash"></i> Eliminar
+                                        </button>
+                                    </form>
+                                </p>
+                            {% else %}
+                                <p class="text-muted"><small><i class="fas fa-ban"></i> Sin permiso para eliminar</small></p>
+                            {% endif %}
+
+
+
                         </div>
                     </div>
                     {% endfor %}

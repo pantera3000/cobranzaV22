@@ -6,6 +6,11 @@ from django.core.validators import MinValueValidator
 from decimal import Decimal
 import datetime
 from django.utils import timezone
+import pytz 
+
+
+
+
 
 # Zona horaria de Perú
 def localtime_peru():
@@ -120,32 +125,45 @@ class Documento(models.Model):
 
 
 
+
+
+
+
+    # documentos/models.py
+    # documentos/models.py
+    @property
     def get_dias_restantes(self):
         """
         Devuelve los días restantes hasta el vencimiento.
-        - Si vence hoy (cualquier hora), devuelve 0.
-        - Si venció hoy o antes, devuelve negativo.
-        - Si vence mañana o después, devuelve positivo.
-        Usa la fecha y hora actual en Lima.
+        - Usa solo la fecha (ignora completamente la hora).
+        - Asegura consistencia de zona horaria.
         """
-        ahora = localtime_peru()
-        vencimiento = self.fecha_vencimiento
+        # Zona horaria de Perú
+        lima_tz = pytz.timezone('America/Lima')
 
-        # Calcular diferencia en días completos
-        delta = (vencimiento.date() - ahora.date()).days
+        # Obtener la hora actual en Lima
+        ahora = timezone.localtime(timezone.now(), lima_tz)
+        hoy = ahora.date()
 
-        # Caso especial: si vence hoy (cualquier hora), es 0
-        if delta == 0 and vencimiento >= ahora:
-            return 0
+        # Asegurar que fecha_vencimiento esté en zona horaria de Lima
+        if timezone.is_naive(self.fecha_vencimiento):
+            # Si es naive, asumimos que es en Lima
+            vencimiento_tz = lima_tz.localize(self.fecha_vencimiento)
+        else:
+            # Si tiene zona horaria, convierte a Lima
+            vencimiento_tz = timezone.localtime(self.fecha_vencimiento, lima_tz)
 
-        # Si ya pasó la fecha de vencimiento (incluyendo hora)
-        if vencimiento < ahora:
-            return delta  # será negativo
+        vencimiento = vencimiento_tz.date()
 
-        return delta
+        return (vencimiento - hoy).days
+
+
+
+
+
 
     def get_dias_display(self):
-        dias = self.get_dias_restantes()
+        dias = self.get_dias_restantes
         if dias > 0:
             return f"{dias} días"
         elif dias == 0:
