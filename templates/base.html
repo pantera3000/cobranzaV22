@@ -289,6 +289,188 @@
         .quick-action:hover .tooltip-text {
             opacity: 1;
         }
+
+        /* ============================================
+           MOBILE: Drawer Menu (desde abajo)
+           ============================================ */
+        .drawer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1050;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .drawer-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .drawer-menu {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+            z-index: 1051;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding-bottom: 70px; /* Espacio para bottom nav */
+        }
+
+        .drawer-menu.active {
+            transform: translateY(0);
+        }
+
+        .drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 1;
+        }
+
+        .drawer-header h5 {
+            margin: 0;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .drawer-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .drawer-content {
+            padding: 10px 0;
+        }
+
+        .drawer-section {
+            margin-bottom: 20px;
+        }
+
+        .drawer-section-title {
+            padding: 10px 20px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .drawer-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #333;
+            text-decoration: none;
+            transition: background 0.2s ease;
+            font-size: 14px;
+        }
+
+        .drawer-item:hover {
+            background: #f8f9fa;
+        }
+
+        .drawer-item i {
+            font-size: 18px;
+            width: 25px;
+            color: #007bff;
+        }
+
+        .drawer-item span {
+            flex: 1;
+        }
+        
+        /* Acordeones compactos para drawer */
+        .drawer-accordion-item {
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .drawer-accordion-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            background: #f8f9fa;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            color: #333;
+            transition: background 0.2s ease;
+        }
+        
+        .drawer-accordion-header:hover {
+            background: #e9ecef;
+        }
+        
+        .drawer-accordion-header i.menu-icon {
+            font-size: 18px;
+            width: 25px;
+            color: #007bff;
+        }
+        
+        .drawer-accordion-header i.chevron {
+            font-size: 14px;
+            transition: transform 0.3s ease;
+            color: #6c757d;
+        }
+        
+        .drawer-accordion-header.active i.chevron {
+            transform: rotate(180deg);
+        }
+        
+        .drawer-accordion-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .drawer-accordion-body.active {
+            max-height: 1000px;
+        }
+        
+        .drawer-sub-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px 10px 50px;
+            color: #555;
+            text-decoration: none;
+            font-size: 13px;
+            transition: background 0.2s ease;
+        }
+        
+        .drawer-sub-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .drawer-sub-item i {
+            font-size: 14px;
+            width: 20px;
+            margin-right: 8px;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -716,11 +898,121 @@
         <i class="fas fa-users"></i>
         <span>Clientes</span>
     </a>
-    <a href="#" class="bottom-nav-item" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+    <a href="#" class="bottom-nav-item" id="openDrawer">
         <i class="fas fa-bars"></i>
         <span>Más</span>
     </a>
 </nav>
+
+<!-- ============================================
+     MOBILE: Drawer Menu
+     ============================================ -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer-menu" id="drawerMenu">
+    <div class="drawer-header">
+        <h5><i class="fas fa-bars"></i> Menú</h5>
+        <button class="drawer-close" id="closeDrawer">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="drawer-content">
+        <!-- Sección: Principal -->
+        <div class="drawer-section">
+            <div class="drawer-section-title">Principal</div>
+            <a href="{% url 'clientes:cliente_list' %}" class="drawer-item">
+                <i class="fas fa-home"></i>
+                <span>Inicio</span>
+            </a>
+            <a href="{% url 'clientes:cliente_list' %}" class="drawer-item">
+                <i class="fas fa-users"></i>
+                <span>Clientes</span>
+            </a>
+            <a href="{% url 'documentos:documento_list' %}" class="drawer-item">
+                <i class="fas fa-file-invoice"></i>
+                <span>Documentos</span>
+            </a>
+            <a href="{% url 'cobros:cobro_list' %}" class="drawer-item">
+                <i class="fas fa-money-bill-wave"></i>
+                <span>Pagos</span>
+            </a>
+            <a href="{% url 'devoluciones:devolucion_list' %}" class="drawer-item">
+                <i class="fas fa-undo"></i>
+                <span>Devoluciones</span>
+            </a>
+        </div>
+
+        <!-- Sección: Acciones Rápidas -->
+        <div class="drawer-section">
+            <div class="drawer-section-title">Acciones Rápidas</div>
+            <a href="{% url 'cobros:cobro_create' %}" class="drawer-item">
+                <i class="fas fa-plus-circle"></i>
+                <span>Registrar Pago</span>
+            </a>
+            <a href="{% url 'documentos:documento_create' %}" class="drawer-item">
+                <i class="fas fa-plus-circle"></i>
+                <span>Nuevo Documento</span>
+            </a>
+            <a href="{% url 'clientes:cliente_create' %}" class="drawer-item">
+                <i class="fas fa-user-plus"></i>
+                <span>Nuevo Cliente</span>
+            </a>
+        </div>
+
+        <!-- Sección: Reportes (solo para usuarios autorizados) -->
+        {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA,CHRISTIAN' %}
+        <div class="drawer-section">
+            <div class="drawer-section-title">Reportes</div>
+            <a href="{% url 'reportes:totales' %}" class="drawer-item">
+                <i class="fas fa-calculator"></i>
+                <span>Totales del Sistema</span>
+            </a>
+            <a href="{% url 'reportes:clientes_vencidos' %}" class="drawer-item">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Clientes Vencidos</span>
+            </a>
+            <a href="{% url 'documentos:reporte_documentos_pendientes' %}" class="drawer-item">
+                <i class="fas fa-file-alt"></i>
+                <span>Documentos Pendientes</span>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Sección: Cobradores (solo para usuarios autorizados) -->
+        {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA,CHRISTIAN' %}
+        <div class="drawer-section">
+            <div class="drawer-section-title">Cobradores</div>
+            <a href="{% url 'cobradores:cobrador_list' %}" class="drawer-item">
+                <i class="fas fa-user-shield"></i>
+                <span>Listar Cobradores</span>
+            </a>
+            <a href="{% url 'cobros:mis_cierres' %}" class="drawer-item">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Mis Cierres</span>
+            </a>
+            <a href="{% url 'cobros:cerrar_planilla_del_dia' %}" class="drawer-item">
+                <i class="fas fa-clipboard-check"></i>
+                <span>Cerrar Planilla</span>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Sección: Usuario -->
+        <div class="drawer-section">
+            <div class="drawer-section-title">Usuario</div>
+            <div class="drawer-item" style="pointer-events: none; opacity: 0.7;">
+                <i class="fas fa-user-circle"></i>
+                <span>{{ user.get_full_name|default:user.username }}</span>
+            </div>
+            <form action="{% url 'logout' %}" method="post" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="drawer-item" style="width: 100%; border: none; background: none; text-align: left; cursor: pointer;">
+                    <i class="fas fa-sign-out-alt" style="color: #dc3545;"></i>
+                    <span style="color: #dc3545;">Cerrar Sesión</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
 
 <!-- ============================================
      DESKTOP: Quick Actions Panel
@@ -811,6 +1103,45 @@ document.querySelectorAll('.bottom-nav-item').forEach(item => {
         item.classList.add('active');
     }
 });
+
+// Drawer Menu Toggle
+const openDrawer = document.getElementById('openDrawer');
+const closeDrawer = document.getElementById('closeDrawer');
+const drawerOverlay = document.getElementById('drawerOverlay');
+const drawerMenu = document.getElementById('drawerMenu');
+
+if (openDrawer && drawerMenu) {
+    // Abrir drawer
+    openDrawer.addEventListener('click', (e) => {
+        e.preventDefault();
+        drawerOverlay.classList.add('active');
+        drawerMenu.classList.add('active');
+        document.body.style.overflow = 'hidden'; // Prevenir scroll del body
+    });
+
+    // Cerrar drawer (botón X)
+    closeDrawer.addEventListener('click', () => {
+        drawerOverlay.classList.remove('active');
+        drawerMenu.classList.remove('active');
+        document.body.style.overflow = ''; // Restaurar scroll
+    });
+
+    // Cerrar drawer (clic en overlay)
+    drawerOverlay.addEventListener('click', () => {
+        drawerOverlay.classList.remove('active');
+        drawerMenu.classList.remove('active');
+        document.body.style.overflow = '';
+    });
+
+    // Cerrar drawer al hacer clic en un link
+    document.querySelectorAll('.drawer-item').forEach(item => {
+        item.addEventListener('click', () => {
+            drawerOverlay.classList.remove('active');
+            drawerMenu.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+    });
+}
 </script>
 {% endif %}
 </body>
