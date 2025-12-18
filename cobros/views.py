@@ -1916,10 +1916,30 @@ def planilla_detalle_pdf(request, pk):
 
     depositos = DepositoParcial.objects.filter(planilla=planilla).order_by('fecha')
 
+    # ✅ Calcular rango de fecha para el día de la planilla (igual que en planilla_detalle)
+    inicio_dia = timezone.make_aware(
+        datetime.combine(planilla.fecha, time.min)
+    )
+    fin_dia = timezone.make_aware(
+        datetime.combine(planilla.fecha, time.max)
+    )
+
+    # ✅ Obtener todos los cobros del cobrador en esa fecha
+    cobros_del_dia = Cobro.objects.filter(
+        cobrador=planilla.cobrador,
+        fecha__gte=inicio_dia,
+        fecha__lte=fin_dia
+    ).select_related('documento', 'documento__cliente').order_by('-fecha')
+
+    # ✅ Calcular total de cobros
+    total_cobros = cobros_del_dia.aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
     # Renderizar a HTML
     html_string = render_to_string('cobros/planilla_detalle_pdf.html', {
         'planilla': planilla,
         'depositos': depositos,
+        'cobros_del_dia': cobros_del_dia,  # ✅ Agregado
+        'total_cobros': total_cobros,  # ✅ Agregado
         'request': request  # Necesario para estáticos
     })
 
