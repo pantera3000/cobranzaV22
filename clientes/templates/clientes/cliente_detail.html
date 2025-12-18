@@ -142,10 +142,10 @@
 <!-- Pestañas de historial -->
 <ul class="nav nav-tabs nav-underline mb-4" id="historialTabs" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active d-flex align-items-center gap-2 px-3 py-2" 
-                id="documentos-tab" 
-                data-bs-toggle="tab" 
-                data-bs-target="#documentos" 
+        <button class="nav-link active d-flex align-items-center gap-2 px-3 py-2"
+                id="documentos-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#documentos"
                 type="button">
             <i class="fas fa-file-invoice"></i>
             <span>Documentos</span>
@@ -155,10 +155,10 @@
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2" 
-                id="cobros-tab" 
-                data-bs-toggle="tab" 
-                data-bs-target="#cobros" 
+        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2"
+                id="cobros-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#cobros"
                 type="button">
             <i class="fas fa-money-bill-wave"></i>
             <span>Pagos</span>
@@ -168,11 +168,11 @@
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2" 
-                id="devoluciones-tab" 
-                data-bs-toggle="tab" 
-                data-bs-target="#devoluciones" 
-                type="button" 
+        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2"
+                id="devoluciones-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#devoluciones"
+                type="button"
                 role="tab">
             <i class="fas fa-undo text-danger"></i>
             <span class="text-danger">Devoluciones</span>
@@ -185,11 +185,11 @@
 
 <!-- <ul class="nav nav-pills mb-4 justify-content-start" id="historialTabs" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active d-flex align-items-center gap-2 px-3 py-2 rounded-pill" 
-                style="background-color: #e3f2fd; color: #1976d2;" 
-                id="documentos-tab" 
-                data-bs-toggle="tab" 
-                data-bs-target="#documentos" 
+        <button class="nav-link active d-flex align-items-center gap-2 px-3 py-2 rounded-pill"
+                style="background-color: #e3f2fd; color: #1976d2;"
+                id="documentos-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#documentos"
                 type="button">
             <i class="fas fa-file-invoice"></i>
             Documentos
@@ -197,11 +197,11 @@
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2 rounded-pill" 
-                style="background-color: #e8f5e8; color: #2e7d32;" 
-                id="cobros-tab" 
-                data-bs-toggle="tab" 
-                data-bs-target="#cobros" 
+        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2 rounded-pill"
+                style="background-color: #e8f5e8; color: #2e7d32;"
+                id="cobros-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#cobros"
                 type="button">
             <i class="fas fa-money-bill-wave"></i>
             Pagos
@@ -209,11 +209,11 @@
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2 rounded-pill" 
-                style="background-color: #fff8e1; color: #f57c00;" 
-                id="devoluciones-tab" 
-                data-bs-toggle="tab" 
-                data-bs-target="#devoluciones" 
+        <button class="nav-link d-flex align-items-center gap-2 px-3 py-2 rounded-pill"
+                style="background-color: #fff8e1; color: #f57c00;"
+                id="devoluciones-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#devoluciones"
                 type="button">
             <i class="fas fa-undo"></i>
             Devoluciones
@@ -477,7 +477,7 @@
                             <tr>
                                 <!-- ✅ Documento clickeable -->
                                 <td>
-                                    <a href="{% url 'documentos:documento_detail' cobro.documento.pk %}" 
+                                    <a href="{% url 'documentos:documento_detail' cobro.documento.pk %}"
                                     class="text-decoration-none">
                                         <strong>{{ cobro.documento.get_tipo_display }}</strong><br>
                                         {{ cobro.documento.get_numero_completo }}
@@ -486,7 +486,7 @@
                                 <td>S/ {{ cobro.monto|floatformat:2 }}</td>
                                 <td>
                                     <!-- ✅ Cobrador clickeable -->
-                                    <a href="{% url 'cobradores:cobrador_detail' cobro.cobrador.pk %}" 
+                                    <a href="{% url 'cobradores:cobrador_detail' cobro.cobrador.pk %}"
                                     class="text-decoration-none">
                                         {{ cobro.cobrador.nombre }}
                                     </a>
@@ -496,11 +496,11 @@
                                     {% if cobro.referencia %}
                                         <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
                                         class="d-inline-flex align-items-center gap-2 text-decoration-none">
-                                            <span class="badge bg-primary text-white px-3 py-1" 
+                                            <span class="badge bg-primary text-white px-3 py-1"
                                                 style="font-size: 0.85em; border-radius: 20px; font-weight: 500;">
                                                 {{ cobro.referencia }}
                                             </span>
-                                            <span class="badge bg-light text-primary border border-primary px-2 py-1" 
+                                            <span class="badge bg-light text-primary border border-primary px-2 py-1"
                                                 style="font-size: 0.75em; border-radius: 12px;">
                                                 {{ referencia_count|get_item:cobro.referencia }} doc
                                             </span>
@@ -520,7 +520,7 @@
 
                                 <td>{{ cobro.fecha|date:"d/m/Y H:i" }}</td>
                                 <td>
-                                    {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'maria' or user.username == 'carlos' %}
+                                    {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'CHRISTIAN' or user.username == 'carlos' %}
                                         <form method="post" action="{% url 'cobros:cobro_delete' cobro.pk %}" class="d-inline">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
@@ -548,7 +548,7 @@
                                 <div>
                                     <!-- ✅ Documento clickeable en móvil -->
                                     <h6 class="mb-0">
-                                        <a href="{% url 'documentos:documento_detail' cobro.documento.pk %}" 
+                                        <a href="{% url 'documentos:documento_detail' cobro.documento.pk %}"
                                         class="text-decoration-none">
                                             <strong>{{ cobro.documento.get_tipo_display }}</strong>
                                             {{ cobro.documento.get_numero_completo }}
@@ -556,7 +556,7 @@
                                     </h6>
                                     <!-- ✅ Cobrador clickeable en móvil -->
                                     <small class="text-muted">
-                                        <a href="{% url 'cobradores:cobrador_detail' cobro.cobrador.pk %}" 
+                                        <a href="{% url 'cobradores:cobrador_detail' cobro.cobrador.pk %}"
                                         class="text-decoration-none">
                                             {{ cobro.cobrador.nombre }}
                                         </a>
@@ -574,11 +574,11 @@
                                     <strong>Referencia:</strong>
                                     <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
                                     class="d-inline-flex align-items-center gap-2 text-decoration-none">
-                                        <span class="badge bg-primary text-white px-3 py-1" 
+                                        <span class="badge bg-primary text-white px-3 py-1"
                                             style="font-size: 0.85em; border-radius: 20px; font-weight: 500;">
                                             {{ cobro.referencia }}
                                         </span>
-                                        <span class="badge bg-light text-primary border border-primary px-2 py-1" 
+                                        <span class="badge bg-light text-primary border border-primary px-2 py-1"
                                             style="font-size: 0.75em; border-radius: 12px;">
                                             {{ referencia_count|get_item:cobro.referencia }} doc
                                         </span>
@@ -590,7 +590,7 @@
                             {% if cobro.notas %}
                                 <div class="col-12">
                                     <small>
-                                        <strong>Notas:</strong> 
+                                        <strong>Notas:</strong>
                                         <span class="text-muted">{{ cobro.notas|truncatechars:60 }}</span>
                                     </small>
                                 </div>
@@ -602,7 +602,7 @@
                             </p>
 
                             <div class="mt-2">
-                                {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'maria' or user.username == 'carlos' %}
+                                {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'CHRISTIAN' or user.username == 'carlos' %}
                                     <form method="post" action="{% url 'cobros:cobro_delete' cobro.pk %}" class="mt-2">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-danger btn-sm"
@@ -691,7 +691,7 @@
                             <tr>
                                 <!-- ✅ Documento clickeable -->
                                 <td>
-                                    <a href="{% url 'documentos:documento_detail' dev.documento.pk %}" 
+                                    <a href="{% url 'documentos:documento_detail' dev.documento.pk %}"
                                     class="text-decoration-none">
                                         <strong>{{ dev.documento.get_tipo_display }}</strong><br>
                                         {{ dev.documento.get_numero_completo }}
@@ -700,7 +700,7 @@
                                 <td><strong class="text-danger">S/ {{ dev.monto|floatformat:2 }}</strong></td>
                                 <!-- ✅ Cobrador clickeable -->
                                 <td>
-                                    <a href="{% url 'cobradores:cobrador_detail' dev.cobrador.pk %}" 
+                                    <a href="{% url 'cobradores:cobrador_detail' dev.cobrador.pk %}"
                                     class="text-decoration-none">
                                         {{ dev.cobrador.nombre }}
                                     </a>
@@ -746,7 +746,7 @@
                                 <div>
                                     <!-- ✅ Documento clickeable en móvil -->
                                     <h6 class="mb-0">
-                                        <a href="{% url 'documentos:documento_detail' dev.documento.pk %}" 
+                                        <a href="{% url 'documentos:documento_detail' dev.documento.pk %}"
                                         class="text-decoration-none">
                                             <strong>{{ dev.documento.get_tipo_display }}</strong>
                                             {{ dev.documento.get_numero_completo }}
@@ -754,7 +754,7 @@
                                     </h6>
                                     <!-- ✅ Cobrador clickeable en móvil -->
                                     <small class="text-muted">
-                                        <a href="{% url 'cobradores:cobrador_detail' dev.cobrador.pk %}" 
+                                        <a href="{% url 'cobradores:cobrador_detail' dev.cobrador.pk %}"
                                         class="text-decoration-none">
                                             {{ dev.cobrador.nombre }}
                                         </a>

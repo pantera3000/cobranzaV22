@@ -51,7 +51,7 @@
             <ul class="dropdown-menu">
                 <!-- ✅ Botón Exportar a Excel con filtros -->
                 <li>
-                    <a class="dropdown-item" 
+                    <a class="dropdown-item"
                     href="{% url 'documentos:documento_export_excel' %}?{% if query %}q={{ query|urlencode }}&{% endif %}{% if tipo %}tipo={{ tipo }}&{% endif %}{% if cliente_id %}cliente={{ cliente_id }}&{% endif %}{% if estado %}estado={{ estado }}&{% endif %}{% if fecha_emision_desde %}fecha_emision_desde={{ fecha_emision_desde }}&{% endif %}{% if fecha_emision_hasta %}fecha_emision_hasta={{ fecha_hasta }}{% endif %}">
                         <i class="fas fa-file-excel text-success"></i> Exportar a Excel
                     </a>
@@ -194,7 +194,7 @@
                         Año pasado ({{ año_pasado }})
                     </a>
                 </div>
-                Filtro "Hoy" "Este mes" y "Mes pasado" solo funciona si el documento es del año presente. 
+                Filtro "Hoy" "Este mes" y "Mes pasado" solo funciona si el documento es del año presente.
             </div>
         </div>
     </div>
@@ -203,16 +203,78 @@
 <!-- Resumen -->
 <!-- <div class="alert alert-primary d-flex justify-content-between align-items-center mb-3">
     <div>
-        <strong>Total documentos:</strong> 
+        <strong>Total documentos:</strong>
         <span class="fw-bold">{{ page_obj.paginator.count }}</span>
     </div>
     <div class="text-end">
-        <strong>Monto total:</strong> 
+        <strong>Monto total:</strong>
         <span class="fw-bold">
             S/ {{ total_monto|floatformat:2 }}
         </span>
     </div>
 </div> -->
+
+
+
+
+
+
+
+
+
+
+<!-- Resumen de Totales -->
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="alert alert-info text-center mb-0">
+            <strong>Sin Pago</strong><br>
+            <span class="h5">S/ {{ total_saldos_pendientes|floatformat:2 }}</span><br>
+            <small>Saldo completo pendiente</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="alert alert-warning text-center mb-0">
+            <strong>Pagos Parciales</strong><br>
+            <span class="h5">S/ {{ total_saldos_parciales|floatformat:2 }}</span><br>
+            <small>Aún no completados</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="alert alert-danger text-center mb-0">
+            <strong>Total Por Cobrar</strong><br>
+            <span class="h5">S/ {{ total_por_cobrar|floatformat:2 }}</span><br>
+            <small>Pendiente + Parcial</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="alert alert-success text-center mb-0">
+            <strong>Total Facturado</strong><br>
+            <span class="h5">S/ {{ total_monto|floatformat:2 }}</span><br>
+            <small>Todos los documentos</small>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 <!-- ✅ Resumen de filtros activos -->
@@ -246,7 +308,7 @@
         {% endif %}
         {% if fecha_emision_desde or fecha_emision_hasta %}
             <span class="badge bg-secondary me-1">
-                Fecha: 
+                Fecha:
                 {% if fecha_emision_desde %}{{ fecha_emision_desde|date:"d/m" }}{% else %}Inicio{% endif %}
                 -
                 {% if fecha_emision_hasta %}{{ fecha_emision_hasta|date:"d/m" }}{% else %}Hoy{% endif %}
@@ -269,11 +331,11 @@
         <!-- Resumen (arriba del todo, visible siempre) -->
         <div class="alert alert-primary d-flex justify-content-between align-items-center mb-3">
             <div>
-                <strong>Total documentos:</strong> 
+                <strong>Total documentos:</strong>
                 <span class="fw-bold">{{ page_obj.paginator.count }}</span>
             </div>
             <div class="text-end">
-                <strong>Monto total:</strong> 
+                <strong>Monto total:</strong>
                 <span class="fw-bold">S/ {{ total_monto|floatformat:2 }}</span>
             </div>
         </div>
@@ -282,7 +344,7 @@
         <!-- Leyenda de colores -->
         <div class="alert alert-light border p-3 mb-4">
             <h6 class="mb-0">
-                <i class="fas fa-info-circle"></i> 
+                <i class="fas fa-info-circle"></i>
                 <strong>Leyenda de vencimiento (Días restantes)</strong>
             </h6>
             <div class="row row-cols-auto g-2 mt-2 justify-content-start">
@@ -325,12 +387,11 @@
                 <table class="table table-striped table-hover mb-0">
                     <thead class="table-primary">
                         <tr>
-                            <th>Tipo</th>
-                            <th>Número</th>
+                            <th>Tipo y Número</th>
                             <th>Cliente</th>
                             <th>Total</th>
                             <th>Pagado</th>
-                            <th>Devolución</th> 
+                            <th>Devolución</th>
                             <th>Saldo</th>
                             <th>Fecha</th>  <!-- ✅ Nueva columna -->
                             <th>Estado</th>
@@ -340,11 +401,11 @@
                     </thead>
                     <tbody>
                         {% for doc in page_obj %}
-                        
 
-                        
-                        
-                        
+
+
+
+
                         <tr class="
                             {% if doc.get_estado == 'pagado' %}
                                 table-success bg-opacity-25
@@ -360,11 +421,12 @@
                         ">
 
 
-                            <td>{{ doc.get_tipo_display }}</td>
-                            <td>{{ doc.serie }}-{{ doc.numero }}</td>
+                            <td>
+                                <strong>{{ doc.get_tipo_display }}</strong><br>{{ doc.get_numero_completo }}
+                            </td>
                             <td class="text-truncate" style="max-width: 150px;">
-                                <a href="{% url 'clientes:cliente_detail' doc.cliente.pk %}" 
-                                class="text-decoration-none" 
+                                <a href="{% url 'clientes:cliente_detail' doc.cliente.pk %}"
+                                class="text-decoration-none"
                                 title="Ver historial de {{ doc.cliente.nombre }}">
                                     {{ doc.cliente.nombre }}
                                 </a>
@@ -418,7 +480,7 @@
                                     {% endif %}
                                 {% endwith %} -->
 
-                            
+
                                 {% if doc.get_estado == 'pagado' %}
                                     <span class="badge bg-secondary rounded-pill px-3 py-2" style="font-size: 0.85em;">
                                         Pagado
@@ -440,7 +502,7 @@
                                         {% endif %}
                                     {% endwith %}
                                 {% endif %}
-                            
+
 
 
 
@@ -499,7 +561,7 @@
                 <div class="row g-3">
                     {% for doc in page_obj %}
                     <div class="col-12">
-                        <!-- <div class="card border h-100 
+                        <!-- <div class="card border h-100
                             {% with dias=doc.get_dias_restantes %}
                                 {% if dias < 0 %}
                                     bg-danger bg-opacity-10
@@ -517,7 +579,7 @@
                             {% endwith %}
                         "> -->
 
-                    <div class="card border h-100 
+                    <div class="card border h-100
                         {% if doc.get_estado == 'pagado' %}
                             bg-success bg-opacity-10
                         {% elif doc.get_estado == 'vencido' %}
@@ -538,7 +600,7 @@
                                         {{ doc.serie }}-{{ doc.numero }}
                                     </h6>
                                     <!-- Estado como badge -->
-                                    <span class="badge 
+                                    <span class="badge
                                         {% if doc.get_estado == 'pagado' %}
                                             bg-success
                                         {% elif doc.get_estado == 'vencido' %}
@@ -554,8 +616,8 @@
                                 </div>
 
                                 <p class="mb-1">
-                                    <strong>Cliente:</strong> 
-                                    <a href="{% url 'clientes:cliente_detail' doc.cliente.pk %}" 
+                                    <strong>Cliente:</strong>
+                                    <a href="{% url 'clientes:cliente_detail' doc.cliente.pk %}"
                                     class="text-decoration-none">
                                         {{ doc.cliente.nombre|truncatechars:20 }}
                                     </a>
@@ -603,7 +665,7 @@
                                     {% endif %}
                                 </div>
 
-                                
+
                                 <div class="btn-group btn-group-sm w-100">
                                     <a href="{% url 'documentos:documento_detail' doc.pk %}" class="btn btn-info" title="Ver">
                                         <i class="fas fa-eye"></i>
@@ -643,41 +705,85 @@
             {% endif %}
         </div>
 
-        <!-- Paginación -->
+        <!-- Paginación Mejorada -->
         {% if page_obj.has_other_pages %}
-        <nav class="mt-3">
-            <ul class="pagination justify-content-center mb-0">
+        <nav aria-label="Paginación de documentos" class="mt-4">
+            <ul class="pagination pagination-sm justify-content-center flex-wrap gap-1">
+                <!-- Botón Anterior -->
                 {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ query|urlencode }}{% if tipo %}&tipo={{ tipo }}{% endif %}{% if cliente_id %}&cliente={{ cliente_id }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if fecha_emision_desde %}&fecha_emision_desde={{ fecha_emision_desde }}{% endif %}{% if fecha_emision_hasta %}&fecha_emision_hasta={{ fecha_emision_hasta }}{% endif %}">
-                        &laquo;
-                    </a>
-                </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}">«</a>
+                    </li>
                 {% else %}
-                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                    <li class="page-item disabled"><span class="page-link">«</span></li>
                 {% endif %}
 
+                <!-- Primera página -->
+                {% if page_obj.number != 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{{ request.GET.urlencode }}&page=1">1</a>
+                    </li>
+                {% else %}
+                    <li class="page-item active"><span class="page-link">1</span></li>
+                {% endif %}
+
+                <!-- Puntos suspensivos antes -->
+                {% if page_obj.paginator.num_pages > 5 and page_obj.number > 3 %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+
+                <!-- Números alrededor de la página actual -->
                 {% for num in page_obj.paginator.page_range %}
-                <li class="page-item {% if num == page_obj.number %}active{% endif %}">
-                    <a class="page-link" href="?page={{ num }}&q={{ query|urlencode }}{% if tipo %}&tipo={{ tipo }}{% endif %}{% if cliente_id %}&cliente={{ cliente_id }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if fecha_emision_desde %}&fecha_emision_desde={{ fecha_emision_desde }}{% endif %}{% if fecha_emision_hasta %}&fecha_emision_hasta={{ fecha_emision_hasta }}{% endif %}">
-                        {{ num }}
-                    </a>
-                </li>
+                    {% if num == page_obj.number %}
+                        {% if num != 1 and num != page_obj.paginator.num_pages %}
+                            <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
+                        {% endif %}
+                    {% elif num > 1 and num < page_obj.paginator.num_pages %}
+                        {% if num == page_obj.number|add:'-2' or num == page_obj.number|add:'-1' or num == page_obj.number|add:'1' or num == page_obj.number|add:'2' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?{{ request.GET.urlencode }}&page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
                 {% endfor %}
 
+                <!-- Puntos suspensivos después -->
+                {% if page_obj.paginator.num_pages > 5 and page_obj.number < page_obj.paginator.num_pages|add:'-2' %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+
+                <!-- Última página -->
+                {% if page_obj.paginator.num_pages != 1 %}
+                    {% if page_obj.number == page_obj.paginator.num_pages %}
+                        <li class="page-item active"><span class="page-link">{{ page_obj.paginator.num_pages }}</span></li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.paginator.num_pages }}">{{ page_obj.paginator.num_pages }}</a>
+                        </li>
+                    {% endif %}
+                {% endif %}
+
+                <!-- Botón Siguiente -->
                 {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ query|urlencode }}{% if tipo %}&tipo={{ tipo }}{% endif %}{% if cliente_id %}&cliente={{ cliente_id }}{% endif %}{% if estado %}&estado={{ estado }}{% endif %}{% if fecha_emision_desde %}&fecha_emision_desde={{ fecha_emision_desde }}{% endif %}{% if fecha_emision_hasta %}&fecha_emision_hasta={{ fecha_emision_hasta }}{% endif %}">
-                        &raquo;
-                    </a>
-                </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}">»</a>
+                    </li>
                 {% else %}
-                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                    <li class="page-item disabled"><span class="page-link">»</span></li>
                 {% endif %}
             </ul>
+
+            <!-- Información resumida (móvil) -->
+            <div class="text-center mt-2">
+                <small class="text-muted">
+                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    {% if page_obj.paginator.count %}
+                        • {{ page_obj.paginator.count }} documentos
+                    {% endif %}
+                </small>
+            </div>
         </nav>
         {% endif %}
-    </div>
 
     {% block extra_css %}
     <style>

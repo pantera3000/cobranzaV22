@@ -16,7 +16,7 @@
                     {% csrf_token %}
                     <div class="row">
                         <div class="col-md-6">
-                            
+
                             <div class="form-group">
                                 <label for="id_cliente_busqueda" class="requiredField">
                                     Cliente
@@ -51,21 +51,27 @@
 
 
                     <!-- Campo oculto para redirección -->
-                    <input type="hidden" name="next" value="{{ request.GET.next|default:request.META.HTTP_REFERER|default:'documentos:documento_list' }}">
-
-
+                    <!-- Campo oculto para redirección -->
+                    {% if request.GET.next %}
+                        <input type="hidden" name="next" value="{{ request.GET.next }}">
+                    {% elif request.POST.next %}
+                        <input type="hidden" name="next" value="{{ request.POST.next }}">
+                    {% else %}
+                        <input type="hidden" name="next" value="{{ request.META.HTTP_REFERER }}">
+                    {% endif %}
 
                     <div class="d-flex justify-content-between mt-3">
+                        <!-- Botón: Ir a lista (por si acaso) -->
                         <a href="{% url 'documentos:documento_list' %}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Ir a la lista de documentos
+                            <i class="fas fa-arrow-left"></i> Ir a la lista
                         </a>
 
-                        <!-- ✅ Botón: Volver atrás -->
+                        <!-- Botón: Volver atrás -->
                         <button type="button" class="btn btn-outline-secondary me-2" onclick="window.history.back();">
-                            <i class="fas fa-arrow-left"></i> Volver Atras
+                            <i class="fas fa-arrow-left"></i> Volver Atrás
                         </button>
 
-
+                        <!-- Botón: Guardar -->
                         <button type="submit" class="btn btn-success">
                             <i class="fas fa-save"></i> Guardar
                         </button>

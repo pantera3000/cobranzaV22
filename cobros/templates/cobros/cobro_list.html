@@ -34,14 +34,14 @@
             <ul class="dropdown-menu">
                 <!-- ✅ Exportar a Excel con filtros -->
                 <li>
-                    <a class="dropdown-item" 
+                    <a class="dropdown-item"
                     href="{% url 'cobros:cobro_export_excel' %}?{% if query %}q={{ query|urlencode }}&{% endif %}{% if fecha_desde %}fecha_desde={{ fecha_desde }}&{% endif %}{% if fecha_hasta %}fecha_hasta={{ fecha_hasta }}&{% endif %}{% if cobrador_id %}cobrador={{ cobrador_id }}{% endif %}">
                         <i class="fas fa-file-excel text-success"></i> Exportar a Excel
                     </a>
                 </li>
                 <!-- ✅ Exportar a CSV con filtros -->
                 <li>
-                    <a class="dropdown-item" 
+                    <a class="dropdown-item"
                     href="{% url 'cobros:cobro_export_csv' %}?{% if query %}q={{ query|urlencode }}&{% endif %}{% if fecha_desde %}fecha_desde={{ fecha_desde }}&{% endif %}{% if fecha_hasta %}fecha_hasta={{ fecha_hasta }}&{% endif %}{% if cobrador_id %}cobrador={{ cobrador_id }}{% endif %}">
                         <i class="fas fa-file-csv text-primary"></i> Exportar a CSV
                     </a>
@@ -93,24 +93,24 @@
                 </button>
 
                 <!-- Atajos de fecha -->
-                <a href="?q={{ query|urlencode }}&cobrador={{ cobrador_id }}&fecha_desde={{ today|date:'Y-m-d' }}&fecha_hasta={{ today|date:'Y-m-d' }}" 
+                <a href="?q={{ query|urlencode }}&cobrador={{ cobrador_id }}&fecha_desde={{ today|date:'Y-m-d' }}&fecha_hasta={{ today|date:'Y-m-d' }}"
                 class="btn btn-outline-info btn-sm">
                     Hoy
                 </a>
-                <a href="?q={{ query|urlencode }}&cobrador={{ cobrador_id }}&fecha_desde={{ mes_inicio|date:'Y-m-d' }}&fecha_hasta={{ mes_fin|date:'Y-m-d' }}" 
+                <a href="?q={{ query|urlencode }}&cobrador={{ cobrador_id }}&fecha_desde={{ mes_inicio|date:'Y-m-d' }}&fecha_hasta={{ mes_fin|date:'Y-m-d' }}"
                 class="btn btn-outline-info btn-sm">
                     Este mes
                 </a>
-                <a href="?q={{ query|urlencode }}&cobrador={{ cobrador_id }}&fecha_desde={{ mes_pasado_inicio|date:'Y-m-d' }}&fecha_hasta={{ mes_pasado_fin|date:'Y-m-d' }}" 
+                <a href="?q={{ query|urlencode }}&cobrador={{ cobrador_id }}&fecha_desde={{ mes_pasado_inicio|date:'Y-m-d' }}&fecha_hasta={{ mes_pasado_fin|date:'Y-m-d' }}"
                 class="btn btn-outline-warning btn-sm">
                     Mes pasado
                 </a>
 
-                <a href="?q={{ query|urlencode }}&cobrador={{ cobrador_id }}&fecha_desde={{ año_actual }}-01-01&fecha_hasta={{ año_actual }}-12-31" 
+                <a href="?q={{ query|urlencode }}&cobrador={{ cobrador_id }}&fecha_desde={{ año_actual }}-01-01&fecha_hasta={{ año_actual }}-12-31"
                 class="btn btn-outline-success btn-sm">
                     Este año ({{ año_actual }})
                 </a>
-                <a href="?q={{ query|urlencode }}&cobrador={{ cobrador_id }}&fecha_desde={{ año_pasado }}-01-01&fecha_hasta={{ año_pasado }}-12-31" 
+                <a href="?q={{ query|urlencode }}&cobrador={{ cobrador_id }}&fecha_desde={{ año_pasado }}-01-01&fecha_hasta={{ año_pasado }}-12-31"
                 class="btn btn-outline-secondary btn-sm">
                     Año pasado ({{ año_pasado }})
                 </a>
@@ -121,7 +121,7 @@
                         <i class="fas fa-times"></i> Limpiar filtros
                     </a>
                 {% endif %}
-                Filtro "Hoy" "Este mes" y "Mes pasado" solo funciona si el documento es del año presente.. 
+                Filtro "Hoy" "Este mes" y "Mes pasado" solo funciona si el documento es del año presente..
             </div>
         </div>
     </div>
@@ -152,7 +152,7 @@
         <!-- Resumen (arriba del todo) -->
         <div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
             <div>
-                <strong>Total filtrado:</strong> 
+                <strong>Total filtrado:</strong>
                 <span class="fw-bold">S/ {{ total_cobrado|floatformat:2 }}</span>
             </div>
             <small class="text-muted">
@@ -183,7 +183,7 @@
                         <tr>
                             <td>
                                 {% if cobro.correlativo %}
-                                    <span class="badge bg-secondary text-white px-3 py-1" 
+                                    <span class="badge bg-secondary text-white px-3 py-1"
                                         style="font-size: 0.80em; font-weight: 500;">
                                         {{ cobro.correlativo }}
                                     </span>
@@ -193,7 +193,7 @@
                             </td>
                             <td>
                                 <!-- ✅ Documento clickeable -->
-                                <a href="{% url 'documentos:documento_detail' cobro.documento.pk %}" 
+                                <a href="{% url 'documentos:documento_detail' cobro.documento.pk %}"
                                    class="text-decoration-none">
                                     <strong>{{ cobro.documento.get_tipo_display }}</strong><br>
                                     {{ cobro.documento.get_numero_completo }}
@@ -201,7 +201,7 @@
                             </td>
                             <td class="text-truncate" style="max-width: 150px;">
                                 <!-- ✅ Cliente clickeable -->
-                                <a href="{% url 'clientes:cliente_detail' cobro.documento.cliente.pk %}" 
+                                <a href="{% url 'clientes:cliente_detail' cobro.documento.cliente.pk %}"
                                    class="text-decoration-none">
                                     {{ cobro.documento.cliente.nombre }}
                                 </a>
@@ -230,7 +230,7 @@
 
                             <td>
                                 <!-- ✅ Cobrador clickeable -->
-                                <a href="{% url 'cobradores:cobrador_detail' cobro.cobrador.pk %}" 
+                                <a href="{% url 'cobradores:cobrador_detail' cobro.cobrador.pk %}"
                                    class="text-decoration-none">
                                     {{ cobro.cobrador.nombre }}
                                 </a>
@@ -239,11 +239,11 @@
                                 {% if cobro.referencia %}
                                     <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
                                     class="d-inline-flex align-items-center gap-2 text-decoration-none">
-                                        <span class="badge bg-primary text-white px-3 py-1" 
+                                        <span class="badge bg-primary text-white px-3 py-1"
                                             style="font-size: 0.85em; border-radius: 20px; font-weight: 500;">
                                             {{ cobro.referencia }}
                                         </span>
-                                        <span class="badge bg-light text-primary border border-primary px-2 py-1" 
+                                        <span class="badge bg-light text-primary border border-primary px-2 py-1"
                                             style="font-size: 0.75em; border-radius: 12px;">
                                             {{ referencia_count|get_item:cobro.referencia }} doc
                                         </span>
@@ -304,7 +304,7 @@
                                     <div>
                                         <!-- ✅ Documento clickeable en móvil -->
                                         <h6 class="mb-0">
-                                            <a href="{% url 'documentos:documento_detail' cobro.documento.pk %}" 
+                                            <a href="{% url 'documentos:documento_detail' cobro.documento.pk %}"
                                                class="text-decoration-none">
                                                 <strong>{{ cobro.documento.get_tipo_display }}</strong>
                                                 {{ cobro.documento.get_numero_completo }}
@@ -312,7 +312,7 @@
                                         </h6>
                                         <!-- ✅ Cliente clickeable en móvil -->
                                         <small class="text-muted">
-                                            <a href="{% url 'clientes:cliente_detail' cobro.documento.cliente.pk %}" 
+                                            <a href="{% url 'clientes:cliente_detail' cobro.documento.cliente.pk %}"
                                                class="text-decoration-none">
                                                 {{ cobro.documento.cliente.nombre|truncatechars:25 }}
                                             </a>
@@ -324,14 +324,14 @@
                                 </div>
 
                                 <div class="mb-2">
-                                    <strong>Monto:</strong> 
+                                    <strong>Monto:</strong>
                                     <span class="fw-bold">S/ {{ cobro.monto|floatformat:2 }}</span>
                                 </div>
 
                                 <!-- ✅ Cobrador clickeable en móvil -->
                                 <p class="mb-1">
-                                    <strong>Cobrador:</strong> 
-                                    <a href="{% url 'cobradores:cobrador_detail' cobro.cobrador.pk %}" 
+                                    <strong>Cobrador:</strong>
+                                    <a href="{% url 'cobradores:cobrador_detail' cobro.cobrador.pk %}"
                                        class="text-decoration-none">
                                         {{ cobro.cobrador.nombre }}
                                     </a>
@@ -341,11 +341,11 @@
                                         <strong>Referencia:</strong>
                                         <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
                                         class="d-inline-flex align-items-center gap-2 text-decoration-none">
-                                            <span class="badge bg-primary text-white px-3 py-1" 
+                                            <span class="badge bg-primary text-white px-3 py-1"
                                                 style="font-size: 0.85em; border-radius: 20px; font-weight: 500;">
                                                 {{ cobro.referencia }}
                                             </span>
-                                            <span class="badge bg-light text-primary border border-primary px-2 py-1" 
+                                            <span class="badge bg-light text-primary border border-primary px-2 py-1"
                                                 style="font-size: 0.75em; border-radius: 12px;">
                                                 {{ referencia_count|get_item:cobro.referencia }} doc
                                             </span>
@@ -358,7 +358,7 @@
                                 {% if cobro.correlativo %}
                                     <p class="mb-1">
                                         <strong>Correlativo:</strong>
-                                        <span class="badge bg-secondary text-white px-3 py-1" 
+                                        <span class="badge bg-secondary text-white px-3 py-1"
                                             style="font-size: 0.80em; font-weight: 500;">
                                             {{ cobro.correlativo }}
                                         </span>
@@ -372,7 +372,7 @@
                                     <div class="col-12">
                                         <small>
                                             <strong>Tipo de Pago:</strong>
-                                            <span class="badge 
+                                            <span class="badge
                                                 {% if cobro.tipo_pago == 'efectivo' %}bg-success
                                                 {% elif cobro.tipo_pago == 'yape' %}bg-info text-white
                                                 {% elif cobro.tipo_pago == 'deposito' %}bg-primary
@@ -417,37 +417,83 @@
         </div>
 
         <!-- Paginación -->
+        <!-- Paginación Mejorada -->
         {% if page_obj.has_other_pages %}
-        <nav class="mt-3">
-            <ul class="pagination justify-content-center mb-0">
+        <nav class="mt-3" aria-label="Paginación de cobros">
+            <ul class="pagination pagination-sm justify-content-center flex-wrap gap-1 mb-0">
+                <!-- Botón Anterior -->
                 {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ query|urlencode }}{% if cobrador_id %}&cobrador={{ cobrador_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">
-                        &laquo;
-                    </a>
-                </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ query|urlencode }}{% if cobrador_id %}&cobrador={{ cobrador_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}" aria-label="Anterior">«</a>
+                    </li>
                 {% else %}
-                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                    <li class="page-item disabled" aria-disabled="true"><span class="page-link">«</span></li>
                 {% endif %}
 
+                <!-- Primera página -->
+                {% if page_obj.number != 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1&q={{ query|urlencode }}{% if cobrador_id %}&cobrador={{ cobrador_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">1</a>
+                    </li>
+                {% else %}
+                    <li class="page-item active" aria-current="page"><span class="page-link">1</span></li>
+                {% endif %}
+
+                <!-- Puntos suspensivos antes -->
+                {% if page_obj.paginator.num_pages > 5 and page_obj.number > 3 %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+
+                <!-- Números alrededor de la página actual -->
                 {% for num in page_obj.paginator.page_range %}
-                <li class="page-item {% if num == page_obj.number %}active{% endif %}">
-                    <a class="page-link" href="?page={{ num }}&q={{ query|urlencode }}{% if cobrador_id %}&cobrador={{ cobrador_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">
-                        {{ num }}
-                    </a>
-                </li>
+                    {% if num > 1 and num < page_obj.paginator.num_pages %}
+                        {% if num == page_obj.number|add:'-2' or num == page_obj.number|add:'-1' or num == page_obj.number or num == page_obj.number|add:'1' or num == page_obj.number|add:'2' %}
+                            {% if num == page_obj.number %}
+                                <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}&q={{ query|urlencode }}{% if cobrador_id %}&cobrador={{ cobrador_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
                 {% endfor %}
 
+                <!-- Puntos suspensivos después -->
+                {% if page_obj.paginator.num_pages > 5 and page_obj.number < page_obj.paginator.num_pages|add:'-2' %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+
+                <!-- Última página -->
+                {% if page_obj.paginator.num_pages != 1 %}
+                    {% if page_obj.number == page_obj.paginator.num_pages %}
+                        <li class="page-item active" aria-current="page"><span class="page-link">{{ page_obj.paginator.num_pages }}</span></li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&q={{ query|urlencode }}{% if cobrador_id %}&cobrador={{ cobrador_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">{{ page_obj.paginator.num_pages }}</a>
+                        </li>
+                    {% endif %}
+                {% endif %}
+
+                <!-- Botón Siguiente -->
                 {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ query|urlencode }}{% if cobrador_id %}&cobrador={{ cobrador_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}">
-                        &raquo;
-                    </a>
-                </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ query|urlencode }}{% if cobrador_id %}&cobrador={{ cobrador_id }}{% endif %}{% if fecha_desde %}&fecha_desde={{ fecha_desde }}{% endif %}{% if fecha_hasta %}&fecha_hasta={{ fecha_hasta }}{% endif %}" aria-label="Siguiente">»</a>
+                    </li>
                 {% else %}
-                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                    <li class="page-item disabled" aria-disabled="true"><span class="page-link">»</span></li>
                 {% endif %}
             </ul>
+
+            <!-- Información resumida (móvil) -->
+            <div class="text-center mt-2">
+                <small class="text-muted">
+                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    {% if page_obj.paginator.count %}
+                        • {{ page_obj.paginator.count }} pago{{ page_obj.paginator.count|pluralize }}
+                    {% endif %}
+                </small>
+            </div>
         </nav>
         {% endif %}
     </div>

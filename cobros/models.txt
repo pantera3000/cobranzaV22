@@ -76,6 +76,12 @@ class PlanillaCierre(models.Model):
     actualizada_en = models.DateTimeField(auto_now=True)
     notas = models.TextField(blank=True, null=True, help_text="Notas generales del cierre")
 
+
+
+    # En la clase PlanillaCierre
+    actualizado_en = models.DateTimeField(null=True, blank=True)
+
+
     class Meta:
         unique_together = ('cobrador', 'fecha')
         verbose_name = "Planilla de Cierre"
@@ -142,7 +148,7 @@ class Cobro(models.Model):
     )
     fecha = models.DateTimeField(default=localtime_peru, verbose_name="Fecha del Pago")
     creado_en = models.DateTimeField(auto_now_add=True)
-    
+
     # ✅ Nuevo campo: referencia del pago múltiple
     referencia = models.CharField(
         max_length=50,
@@ -176,7 +182,7 @@ class Cobro(models.Model):
 
     correlativo = models.CharField(max_length=20, blank=True, null=True)  # ✅ Nuevo campo
 
-    
+
 
 
 

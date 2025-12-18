@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-5o)29+o9e0tislu0ye&c)-)$3xi_2$x%i77vv^8ax%y459&y*(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['tu-usuario.pythonanywhere.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['nativacobros.pythonanywhere.com', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'cobros',  # 👈 Añadir aquí
     'devoluciones',  # 👈 Añadir aquí
     'reportes',  # 👈 Añadir aquí
-    
+
     'crispy_forms',  # 👈 Para Bootstrap en formularios
     'crispy_bootstrap5',
 ]

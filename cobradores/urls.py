@@ -11,4 +11,15 @@ urlpatterns = [
     path('eliminar/<int:pk>/', views.cobrador_delete, name='cobrador_delete'),
     path('exportar/excel/', views.cobrador_export_excel, name='cobrador_export_excel'),
     path('exportar/csv/', views.cobrador_export_csv, name='cobrador_export_csv'),
+
+
+    # ✅ Nuevas URLs para exportar pestañas con filtros
+
+    path('<int:pk>/exportar-cobros-excel/', views.exportar_cobros_excel, name='exportar_cobros_excel'),
+
+
+    path('<int:pk>/exportar-cobros-pdf/', views.exportar_cobros_pdf, name='exportar_cobros_pdf'),
+
+
+
 ]

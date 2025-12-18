@@ -15,25 +15,37 @@ from django.core.serializers.json import DjangoJSONEncoder  # ✅ Y esta tambié
 from django.core.paginator import Paginator
 from clientes.models import Cliente
 
+from decimal import Decimal
+
+
 
 
 def localtime_peru():
     return timezone.localtime(timezone.now())
 
 
+
+
+
+
+
+
 def reporte_clientes_vencidos(request):
-    """Clientes con documentos vencidos y saldo pendiente"""
+    """
+    Clientes con documentos vencidos y saldo pendiente.
+    Filtra por días de retraso, búsqueda y paginación.
+    """
     hoy = localtime_peru().date()
     dias_filtro = request.GET.get('dias', '')  # '30', '60', '90'
     query = request.GET.get('q', '')  # ✅ Búsqueda por cliente
 
-    # Base: documentos vencidos con saldo pendiente
+    # === Base: documentos vencidos con saldo pendiente ===
     docs_vencidos = Documento.objects.filter(
         fecha_vencimiento__lt=timezone.now(),
         monto_total__gt=F('monto_pagado') + F('monto_devolucion')
     ).select_related('cliente').order_by('fecha_vencimiento')
 
-    # Filtro por rango de días de retraso
+    # === Filtro por rango de días de retraso ===
     if dias_filtro == '30':
         hace_30 = hoy - timedelta(days=30)
         docs_vencidos = docs_vencidos.filter(fecha_vencimiento__date__gte=hace_30)
@@ -48,14 +60,16 @@ def reporte_clientes_vencidos(request):
         hace_60 = hoy - timedelta(days=60)
         docs_vencidos = docs_vencidos.filter(fecha_vencimiento__date__lt=hace_60)
 
-    # ✅ Filtro por búsqueda
+    # === Filtro por búsqueda ===
     if query:
         docs_vencidos = docs_vencidos.filter(
             Q(cliente__nombre__icontains=query) |
-            Q(cliente__dni_ruc__icontains=query)
+            Q(cliente__dni_ruc__icontains=query) |
+            Q(numero__icontains=query) |
+            Q(serie__icontains=query)
         )
 
-    # Agrupar por cliente
+    # === Agrupar por cliente ===
     clientes_data = {}
     for doc in docs_vencidos:
         cliente = doc.cliente
@@ -63,7 +77,7 @@ def reporte_clientes_vencidos(request):
             clientes_data[cliente.pk] = {
                 'cliente': cliente,
                 'documentos': [],
-                'total_vencido': 0,
+                'total_vencido': Decimal('0.00'),
                 'dias_promedio': 0,
                 'documentos_count': 0
             }
@@ -78,18 +92,51 @@ def reporte_clientes_vencidos(request):
         clientes_data[cliente.pk]['dias_promedio'] += dias_retraso
         clientes_data[cliente.pk]['documentos_count'] += 1
 
-    # Calcular promedio
+    # === Calcular promedio de días ===
     for data in clientes_data.values():
         if data['documentos_count'] > 0:
             data['dias_promedio'] = data['dias_promedio'] // data['documentos_count']
 
+    # === Ordenar por total vencido ===
     clientes_list = sorted(clientes_data.values(), key=lambda x: x['total_vencido'], reverse=True)
 
+    # === Paginación ===
+    paginator = Paginator(clientes_list, 15)  # 15 clientes por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # === Calcular totales adicionales ===
+    total_documentos_filtrados = docs_vencidos.count()  # Total de documentos en el filtro actual
+    total_documentos_global = Documento.objects.filter(
+        fecha_vencimiento__lt=timezone.now(),
+        monto_total__gt=F('monto_pagado') + F('monto_devolucion')
+    ).count()  # Total global de documentos vencidos
+
+    pagina_actual = page_obj.number
+    total_paginas = page_obj.paginator.num_pages
+
+    # === Generar etiqueta del filtro ===
+    if dias_filtro == '30':
+        filtro_label = '0–30 días'
+    elif dias_filtro == '60':
+        filtro_label = '31–60 días'
+    elif dias_filtro == '90':
+        filtro_label = '+60 días'
+    else:
+        filtro_label = 'Todos los documentos vencidos'
+
     return render(request, 'reportes/clientes_vencidos.html', {
-        'clientes_list': clientes_list,
+        'page_obj': page_obj,
+        'clientes_list': page_obj,  # ✅ Para compatibilidad con el template
         'dias_filtro': dias_filtro,
-        'query': query,  # ✅ Pasar la búsqueda al template
+        'query': query,
+        'filtro_label': filtro_label,  # ✅ Ahora sí está definido
+        'total_documentos_filtrados': total_documentos_filtrados,
+        'total_documentos_global': total_documentos_global,
+        'pagina_actual': pagina_actual,
+        'total_paginas': total_paginas,
     })
+
 
 
 

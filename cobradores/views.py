@@ -21,6 +21,15 @@ from datetime import datetime
 
 from django.contrib.auth.decorators import user_passes_test
 
+from openpyxl.styles import Font
+
+
+
+
+
+
+
+
 
 
 
@@ -150,9 +159,12 @@ def cobrador_detail(request, pk):
     devoluciones_page = request.GET.get('devoluciones_page')
     devoluciones_page_obj = devoluciones_paginator.get_page(devoluciones_page)
 
+    # === Documentos Pendientes (con filtro de fecha) ===
     documentos_pendientes = Documento.objects.filter(
         cobrador=cobrador,
-        monto_total__gt=F('monto_pagado') + F('monto_devolucion')
+        monto_total__gt=F('monto_pagado') + F('monto_devolucion'),
+        fecha_emision__date__gte=fecha_desde_dt,  # ✅ Filtro por fecha de emisión
+        fecha_emision__date__lte=fecha_hasta_dt
     ).select_related('cliente').order_by('fecha_vencimiento')
     pendientes_paginator = Paginator(documentos_pendientes, 20)
     pendientes_page = request.GET.get('pendientes_page')
@@ -197,7 +209,7 @@ def cobrador_detail(request, pk):
         from cobros.models import MetaMensual
         mes_actual = hoy.replace(day=1)
         meta = MetaMensual.objects.get(mes=mes_actual)
-        
+
         # Fechas del mes
         _, last_day = calendar.monthrange(hoy.year, hoy.month)
         fecha_inicio = timezone.make_aware(datetime.combine(hoy.replace(day=1), datetime.min.time()))
@@ -243,6 +255,234 @@ def cobrador_detail(request, pk):
         'porcentaje_aporte': porcentaje_aporte,
         'meta_alcanzada': meta_alcanzada,
     })
+
+
+
+
+
+
+
+
+
+
+
+def exportar_cobros_excel(request, pk):
+    """
+    Exporta SOLO los cobros del cobrador, aplicando los mismos filtros de fecha
+    que se usan en cobrador_detail.
+    """
+    cobrador = get_object_or_404(Cobrador, pk=pk)
+    hoy = localtime_peru().date()
+
+    # === Copiar lógica de filtros de cobrador_detail ===
+    filtro_rapido = request.GET.get('filtro')
+    fecha_desde = request.GET.get('fecha_desde')
+    fecha_hasta = request.GET.get('fecha_hasta')
+
+    if filtro_rapido == 'hoy':
+        fecha_desde = fecha_hasta = hoy.isoformat()
+    elif filtro_rapido == 'ayer':
+        ayer = hoy - timedelta(days=1)
+        fecha_desde = fecha_hasta = ayer.isoformat()
+    elif filtro_rapido == 'mes':
+        fecha_desde = (hoy.replace(day=1)).isoformat()
+        fecha_hasta = hoy.isoformat()
+    elif filtro_rapido == 'mes_pasado':
+        primer_dia = (hoy.replace(day=1) - timedelta(days=1)).replace(day=1)
+        ultimo_dia = hoy.replace(day=1) - timedelta(days=1)
+        fecha_desde = primer_dia.isoformat()
+        fecha_hasta = ultimo_dia.isoformat()
+    elif filtro_rapido == '3meses':
+        fecha_desde = (hoy - timedelta(days=90)).isoformat()
+        fecha_hasta = hoy.isoformat()
+    elif filtro_rapido == 'año':
+        fecha_desde = hoy.replace(month=1, day=1).isoformat()
+        fecha_hasta = hoy.isoformat()
+    elif filtro_rapido == 'año_pasado':
+        año_pasado = hoy.year - 1
+        fecha_desde = f"{año_pasado}-01-01"
+        fecha_hasta = f"{año_pasado}-12-31"
+
+    if not fecha_desde and not fecha_hasta and not filtro_rapido:
+        inicio_año = hoy.replace(month=1, day=1)
+        fecha_desde = inicio_año.isoformat()
+        fecha_hasta = hoy.isoformat()
+
+    from django.utils.dateparse import parse_date
+    fecha_desde_dt = parse_date(fecha_desde) or (hoy - timedelta(days=30))
+    fecha_hasta_dt = parse_date(fecha_hasta) or hoy
+
+    # === Obtener cobros filtrados ===
+    cobros = Cobro.objects.filter(
+        cobrador=cobrador,
+        fecha__date__gte=fecha_desde_dt,
+        fecha__date__lte=fecha_hasta_dt
+    ).select_related('documento', 'documento__cliente').order_by('-fecha')
+
+    # === Crear archivo Excel ===
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Cobros"
+
+    # Estilo negrita
+    bold_font = Font(bold=True)
+
+    # Encabezados
+    headers = ['Documento', 'Cliente', 'Monto', 'Referencia', 'Notas', 'Fecha Pago', 'Registrado por']
+    for col_num, header in enumerate(headers, 1):
+        cell = sheet.cell(row=1, column=col_num)
+        cell.value = header
+        cell.font = bold_font
+
+    # Datos
+    for cobro in cobros:
+        row = [
+            f"{cobro.documento.get_tipo_display()} {cobro.documento.get_numero_completo()}",
+            cobro.documento.cliente.nombre,
+            float(cobro.monto),
+            cobro.referencia or '',
+            cobro.notas or '',
+            cobro.fecha.strftime('%d/%m/%Y %H:%M'),
+            cobro.usuario_registro.get_full_name() if cobro.usuario_registro else 'Sistema'
+        ]
+        sheet.append(row)
+
+    # Ajustar ancho de columnas
+    sheet.column_dimensions['A'].width = 20
+    sheet.column_dimensions['B'].width = 25
+    sheet.column_dimensions['C'].width = 12
+    sheet.column_dimensions['D'].width = 18
+    sheet.column_dimensions['E'].width = 25
+    sheet.column_dimensions['F'].width = 18
+    sheet.column_dimensions['G'].width = 20
+
+    # Respuesta HTTP
+    filename = f"pagos_{cobrador.nombre}_{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    workbook.save(response)
+    return response
+
+
+
+
+
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from weasyprint import HTML
+import tempfile
+
+def exportar_cobros_pdf(request, pk):
+    cobrador = get_object_or_404(Cobrador, pk=pk)
+    hoy = localtime_peru().date()
+
+    # === Copiar lógica de filtros ===
+    filtro_rapido = request.GET.get('filtro')
+    fecha_desde = request.GET.get('fecha_desde')
+    fecha_hasta = request.GET.get('fecha_hasta')
+
+    if filtro_rapido == 'hoy':
+        fecha_desde = fecha_hasta = hoy.isoformat()
+    elif filtro_rapido == 'ayer':
+        ayer = hoy - timedelta(days=1)
+        fecha_desde = fecha_hasta = ayer.isoformat()
+    elif filtro_rapido == 'mes':
+        fecha_desde = (hoy.replace(day=1)).isoformat()
+        fecha_hasta = hoy.isoformat()
+    elif filtro_rapido == 'mes_pasado':
+        primer_dia = (hoy.replace(day=1) - timedelta(days=1)).replace(day=1)
+        ultimo_dia = hoy.replace(day=1) - timedelta(days=1)
+        fecha_desde = primer_dia.isoformat()
+        fecha_hasta = ultimo_dia.isoformat()
+    elif filtro_rapido == '3meses':
+        fecha_desde = (hoy - timedelta(days=90)).isoformat()
+        fecha_hasta = hoy.isoformat()
+    elif filtro_rapido == 'año':
+        fecha_desde = hoy.replace(month=1, day=1).isoformat()
+        fecha_hasta = hoy.isoformat()
+    elif filtro_rapido == 'año_pasado':
+        año_pasado = hoy.year - 1
+        fecha_desde = f"{año_pasado}-01-01"
+        fecha_hasta = f"{año_pasado}-12-31"
+
+    if not fecha_desde and not fecha_hasta and not filtro_rapido:
+        inicio_año = hoy.replace(month=1, day=1)
+        fecha_desde = inicio_año.isoformat()
+        fecha_hasta = hoy.isoformat()
+
+    from django.utils.dateparse import parse_date
+    fecha_desde_dt = parse_date(fecha_desde) or (hoy - timedelta(days=30))
+    fecha_hasta_dt = parse_date(fecha_hasta) or hoy
+
+    # === Obtener cobros filtrados ===
+    cobros = Cobro.objects.filter(
+        cobrador=cobrador,
+        fecha__date__gte=fecha_desde_dt,
+        fecha__date__lte=fecha_hasta_dt
+    ).select_related('documento', 'documento__cliente').order_by('-fecha')
+
+    total_cobrado = cobros.aggregate(total=Sum('monto'))['total'] or 0
+
+    # === Generar HTML para PDF ===
+    html_string = render_to_string('cobros/cobro_list_pdf.html', {
+        'cobrador': cobrador,
+        'cobros': cobros,
+        'total_cobrado': total_cobrado,
+        'fecha_desde': fecha_desde_dt,
+        'fecha_hasta': fecha_hasta_dt,
+        'filtro_label': get_filtro_label(filtro_rapido, fecha_desde, fecha_hasta),
+        'request': request  # Necesario para estáticos
+    })
+
+    # === Generar PDF ===
+    html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+    pdf = html.write_pdf()
+
+    # === Preparar respuesta ===
+    filename = f"pagos_{cobrador.nombre}_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -65,26 +65,33 @@
         <thead class="table-primary">
             <tr>
                 <th>Cobrador</th>
-                <th>Fecha</th>
-                <th>Hora</th> <!-- ✅ Nueva columna -->
+                <th>Fecha Planilla</th>
+                <th>Fecha Creado</th> <!-- ✅ Mejor nombre -->
                 <th>Total Cobrado</th>
                 <th>Total Depositado</th>
                 <th>Pendiente</th>
                 <th>Estado</th>
+                <th>Advertencia</th>
                 <th>Acción</th>
             </tr>
         </thead>
         <tbody>
             {% for p in page_obj %}
             <tr>
-                <td>{{ p.cobrador.nombre }}</td>
+                <td>
+                    {{ p.cobrador.nombre }}
+                    {% if p.tiene_cobros_pendientes %}
+                        <i class="fas fa-exclamation-triangle text-warning ms-1"
+                           title="Hay cobros registrados después del cierre"></i>
+                    {% endif %}
+                </td>
                 <td>{{ p.fecha|date:"d/m/Y" }}</td>
-                <td>{{ p.creada_en|date:"H:i" }}</td> <!-- ✅ Hora de creación -->
+                <td>{{ p.creada_en|date:"d/m/Y H:i" }}</td> <!-- ✅ Fecha completa del cierre -->
                 <td>S/ {{ p.total_cobrado|floatformat:2 }}</td>
                 <td>S/ {{ p.total_depositado|floatformat:2 }}</td>
                 <td>S/ {{ p.saldo_pendiente|floatformat:2 }}</td>
                 <td>
-                    <span class="badge 
+                    <span class="badge
                         {% if p.estado == 'completado' %}bg-success
                         {% elif p.estado == 'parcial' %}bg-warning
                         {% else %}bg-danger
@@ -92,6 +99,21 @@
                         {{ p.get_estado_display }}
                     </span>
                 </td>
+
+
+                <td>
+                    {% if p.tiene_cobros_pendientes %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-exclamation-triangle"></i> Cobros posteriores
+                        </span>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+
+
+
+
                 <td>
                     <!-- ✅ Ver siempre disponible -->
                     <a href="{% url 'cobros:planilla_detalle' p.pk %}" class="btn btn-sm btn-info">
@@ -104,6 +126,16 @@
                             <i class="fas fa-undo"></i> Reabrir
                         </button>
                     {% endif %}
+
+
+                    <!-- ✅ Botón Borrar (solo staff/superuser) -->
+                    {% if request.user.is_staff %}
+                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#eliminarModal{{ p.pk }}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    {% endif %}
+
+
                 </td>
             </tr>
             {% empty %}
@@ -196,4 +228,38 @@
     </div>
 </div>
 {% endfor %}
+
+
+
+
+<!-- Modales para Eliminar Planilla (uno por planilla) -->
+{% for p in page_obj %}
+<div class="modal fade" id="eliminarModal{{ p.pk }}" tabindex="-1" aria-labelledby="labelEliminar{{ p.pk }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="labelEliminar{{ p.pk }}">¿Eliminar planilla?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Cobrador:</strong> {{ p.cobrador.nombre }}</p>
+                <p><strong>Fecha:</strong> {{ p.fecha|date:"d/m/Y" }}</p>
+                <p><strong>Total cobrado:</strong> S/ {{ p.total_cobrado|floatformat:2 }}</p>
+                <p class="text-danger">Esta acción no elimina los pagos registrados, solo el registro del cierre.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{% url 'cobros:eliminar_planilla' p.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Sí, Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+
 {% endblock %}

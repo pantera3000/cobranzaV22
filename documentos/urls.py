@@ -32,7 +32,7 @@ urlpatterns = [
     path('despachos/<int:despacho_id>/cerrar/', views.despacho_cerrar, name='despacho_cerrar'),
     path('despachos/<int:despacho_id>/reabrir/', views.despacho_reabrir, name='despacho_reabrir'),
     path('despachos/<int:despacho_id>/eliminar/', views.despacho_eliminar, name='despacho_eliminar'),
-    
+
     # --- PDFs ---
     path('despachos/<int:despacho_id>/pdf/', views.despacho_pdf, name='despacho_pdf'),
     path('despachos/<int:despacho_id>/liquidacion-pdf/', views.despacho_liquidacion_pdf, name='despacho_liquidacion_pdf'),
@@ -44,6 +44,12 @@ urlpatterns = [
     # documentos/urls.py
     path('export/excel/', views.despacho_export_excel, name='despacho_export_excel'),
     path('export/pdf/', views.despacho_export_pdf, name='despacho_export_pdf'),
+
+
+    path('reporte-pendientes/', views.reporte_documentos_pendientes, name='reporte_documentos_pendientes'),
+    path('reporte-pendientes/excel/', views.reporte_documentos_pendientes_excel, name='reporte_documentos_pendientes_excel'),
+    path('reporte-pendientes/pdf/', views.reporte_documentos_pendientes_pdf, name='reporte_documentos_pendientes_pdf'),
+
 
     # ... tus otras rutas ...
 ]

@@ -6,11 +6,11 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-users"></i> Clientes</h2>
     <div>
-        
+
         <button type="button" class="btn btn-outline-secondary me-2" onclick="window.history.back();">
             <i class="fas fa-arrow-left"></i> Volver
         </button>
-        
+
         <a href="{% url 'clientes:cliente_create' %}" class="btn btn-success me-2">
             <i class="fas fa-plus"></i> Nuevo Cliente
         </a>
@@ -90,16 +90,16 @@
                             <td>{{ cliente.creado_en|date:"d/m/Y" }}</td>
                             <td>
                                 <div class="btn-group" role="group">
-                                    <a href="{% url 'clientes:cliente_detail' cliente.pk %}" 
+                                    <a href="{% url 'clientes:cliente_detail' cliente.pk %}"
                                        class="btn btn-sm btn-info" title="Ver">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{% url 'clientes:cliente_update' cliente.pk %}" 
+                                    <a href="{% url 'clientes:cliente_update' cliente.pk %}"
                                        class="btn btn-sm btn-warning" title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     {% if request.user.is_superuser or request.user.is_staff %}
-                                        <a href="{% url 'clientes:cliente_delete' cliente.pk %}" 
+                                        <a href="{% url 'clientes:cliente_delete' cliente.pk %}"
                                         class="btn btn-sm btn-danger" title="Eliminar"
                                         onclick="return confirm('¿Eliminar a {{ cliente.nombre }}?');">
                                             <i class="fas fa-trash"></i>
@@ -148,16 +148,16 @@
                                         </small>
                                     </div>
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{% url 'clientes:cliente_detail' cliente.pk %}" 
+                                        <a href="{% url 'clientes:cliente_detail' cliente.pk %}"
                                            class="btn btn-info" title="Ver">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="{% url 'clientes:cliente_update' cliente.pk %}" 
+                                        <a href="{% url 'clientes:cliente_update' cliente.pk %}"
                                            class="btn btn-warning" title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         {% if request.user.is_superuser or request.user.is_staff %}
-                                            <a href="{% url 'clientes:cliente_delete' cliente.pk %}" 
+                                            <a href="{% url 'clientes:cliente_delete' cliente.pk %}"
                                             class="btn btn-danger" title="Eliminar"
                                             onclick="return confirm('¿Eliminar a {{ cliente.nombre }}?');">
                                                 <i class="fas fa-trash"></i>
@@ -183,31 +183,83 @@
         </div>
 
         <!-- Paginación (fuera de responsive) -->
+        <!-- Paginación Mejorada -->
         {% if page_obj.has_other_pages %}
-        <nav class="mt-3">
-            <ul class="pagination justify-content-center mb-0">
+        <nav class="mt-3" aria-label="Paginación de clientes">
+            <ul class="pagination pagination-sm justify-content-center flex-wrap gap-1 mb-0">
+                <!-- Botón Anterior -->
                 {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ query|urlencode }}">&laquo;</a>
-                </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ query|urlencode }}" aria-label="Anterior">«</a>
+                    </li>
                 {% else %}
-                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                    <li class="page-item disabled" aria-disabled="true"><span class="page-link">«</span></li>
                 {% endif %}
 
+                <!-- Primera página -->
+                {% if page_obj.number != 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1&q={{ query|urlencode }}">1</a>
+                    </li>
+                {% else %}
+                    <li class="page-item active" aria-current="page"><span class="page-link">1</span></li>
+                {% endif %}
+
+                <!-- Puntos suspensivos antes -->
+                {% if page_obj.paginator.num_pages > 5 and page_obj.number > 3 %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+
+                <!-- Números alrededor de la página actual -->
                 {% for num in page_obj.paginator.page_range %}
-                <li class="page-item {% if num == page_obj.number %}active{% endif %}">
-                    <a class="page-link" href="?page={{ num }}&q={{ query|urlencode }}">{{ num }}</a>
-                </li>
+                    {% if num > 1 and num < page_obj.paginator.num_pages %}
+                        {% if num == page_obj.number|add:'-2' or num == page_obj.number|add:'-1' or num == page_obj.number or num == page_obj.number|add:'1' or num == page_obj.number|add:'2' %}
+                            {% if num == page_obj.number %}
+                                <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}&q={{ query|urlencode }}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
                 {% endfor %}
 
+                <!-- Puntos suspensivos después -->
+                {% if page_obj.paginator.num_pages > 5 and page_obj.number < page_obj.paginator.num_pages|add:'-2' %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+
+                <!-- Última página -->
+                {% if page_obj.paginator.num_pages != 1 %}
+                    {% if page_obj.number == page_obj.paginator.num_pages %}
+                        <li class="page-item active" aria-current="page"><span class="page-link">{{ page_obj.paginator.num_pages }}</span></li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&q={{ query|urlencode }}">{{ page_obj.paginator.num_pages }}</a>
+                        </li>
+                    {% endif %}
+                {% endif %}
+
+                <!-- Botón Siguiente -->
                 {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ query|urlencode }}">&raquo;</a>
-                </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ query|urlencode }}" aria-label="Siguiente">»</a>
+                    </li>
                 {% else %}
-                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                    <li class="page-item disabled" aria-disabled="true"><span class="page-link">»</span></li>
                 {% endif %}
             </ul>
+
+            <!-- Información resumida (móvil) -->
+            <div class="text-center mt-2">
+                <small class="text-muted">
+                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    {% if page_obj.paginator.count %}
+                        • {{ page_obj.paginator.count }} clientes
+                    {% endif %}
+                </small>
+            </div>
         </nav>
         {% endif %}
     </div>

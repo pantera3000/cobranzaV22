@@ -22,6 +22,11 @@ def localtime_peru():
 
 
 
+from datetime import datetime, time
+from django.db.models import Sum
+from decimal import Decimal
+import pytz
+
 
 
 
@@ -76,6 +81,11 @@ class PlanillaCierre(models.Model):
     actualizada_en = models.DateTimeField(auto_now=True)
     notas = models.TextField(blank=True, null=True, help_text="Notas generales del cierre")
 
+
+    # En la clase PlanillaCierre
+    actualizado_en = models.DateTimeField(null=True, blank=True)
+
+
     class Meta:
         unique_together = ('cobrador', 'fecha')
         verbose_name = "Planilla de Cierre"
@@ -97,6 +107,61 @@ class PlanillaCierre(models.Model):
         else:
             self.estado = 'pendiente'
         self.save()
+
+
+
+
+
+
+
+
+
+
+    def tiene_cobros_pendientes(self):
+        """
+        Verifica si hay cobros del mismo día que no fueron incluidos en el cierre.
+        """
+        # Convertir fecha local a datetime con zona horaria
+        lima_tz = pytz.timezone('America/Lima')
+        inicio_dia = lima_tz.localize(datetime.combine(self.fecha, time.min))
+        fin_dia = lima_tz.localize(datetime.combine(self.fecha, time.max))
+
+        # Calcular total de cobros del cobrador ese día
+        cobros_del_dia = Cobro.objects.filter(
+            cobrador=self.cobrador,
+            fecha__gte=inicio_dia,
+            fecha__lte=fin_dia
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+        # Si el total registrado es menor al real → hay pagos faltantes
+        return cobros_del_dia > self.total_cobrado
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class DepositoParcial(models.Model):
@@ -142,7 +207,7 @@ class Cobro(models.Model):
     )
     fecha = models.DateTimeField(default=localtime_peru, verbose_name="Fecha del Pago")
     creado_en = models.DateTimeField(auto_now_add=True)
-    
+
     # ✅ Nuevo campo: referencia del pago múltiple
     referencia = models.CharField(
         max_length=50,
@@ -176,7 +241,7 @@ class Cobro(models.Model):
 
     correlativo = models.CharField(max_length=20, blank=True, null=True)  # ✅ Nuevo campo
 
-    
+
 
     # ✅ CAMBIO CLAVE: Quién registró este pago en el sistema
     usuario_registro = models.ForeignKey(
@@ -209,13 +274,41 @@ class Cobro(models.Model):
         self.documento.save(update_fields=['monto_pagado'])
 
     def delete(self, *args, **kwargs):
+        # Guardar datos antes de eliminar
         documento = self.documento
+        fecha_pago = self.fecha.date() if isinstance(self.fecha, datetime) else self.fecha
+        cobrador = self.cobrador
+
+        # Eliminar el cobro (esto ya recalcula monto_pagado del documento)
         super().delete(*args, **kwargs)
+
+        # Recalcular monto_pagado del documento
         total_cobros = documento.cobro_set.aggregate(
             total=models.Sum('monto')
         )['total'] or Decimal('0.00')
         documento.monto_pagado = total_cobros
         documento.save(update_fields=['monto_pagado'])
+
+        # ✅ Recalcular total_cobrado en la planilla del día
+        try:
+            planilla = PlanillaCierre.objects.get(cobrador=cobrador, fecha=fecha_pago)
+            inicio_dia = timezone.make_aware(datetime.combine(planilla.fecha, time.min))
+            fin_dia = timezone.make_aware(datetime.combine(planilla.fecha, time.max))
+
+            nuevo_total = Cobro.objects.filter(
+                cobrador=cobrador,
+                fecha__gte=inicio_dia,
+                fecha__lte=fin_dia
+            ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+            planilla.total_cobrado = nuevo_total
+            planilla.save()
+
+            # Opcional: si hay actualizado_en y fue después del cierre original, podrías limpiarlo
+            # Pero mejor dejarlo como historial
+
+        except PlanillaCierre.DoesNotExist:
+            pass  # No hay planilla para ese día
 
 
 

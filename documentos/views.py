@@ -27,6 +27,227 @@ from weasyprint import HTML
 
 
 
+from datetime import datetime, time
+from decimal import Decimal
+from django.db.models import Sum, F, Q, ExpressionWrapper, DecimalField
+from django.core.paginator import Paginator
+from django.utils import timezone
+import calendar
+import pytz
+
+
+
+
+
+
+
+
+
+@login_required
+def reporte_documentos_pendientes(request):
+    # ✅ Verificar permisos (ajusta según tus necesidades)
+    grupos_permitidos = ['Puede Ver Reportes Avanzados']
+    usuarios_permitidos = ['juanc', 'adminaqp', 'maria']
+
+    tiene_grupo = request.user.groups.filter(name__in=grupos_permitidos).exists()
+    es_usuario_especial = request.user.username in usuarios_permitidos
+
+    if not (request.user.is_staff or request.user.is_superuser or tiene_grupo or es_usuario_especial):
+        messages.error(request, "No tienes permiso para ver este reporte.")
+        return redirect('clientes:cliente_list')
+
+    # === Filtros ===
+    fecha_inicio = request.GET.get('fecha_inicio')  # Formato: YYYY-MM
+    fecha_fin = request.GET.get('fecha_fin')
+    cliente_id = request.GET.get('cliente')
+
+    # === Calcular total general (todos los pendientes sin filtros) ===
+    todos_los_pendientes = Documento.objects.select_related('cliente').annotate(
+        saldo_pendiente=F('monto_total') - F('monto_pagado') - F('monto_devolucion')
+    ).filter(saldo_pendiente__gt=Decimal('0.00'))
+
+    total_general = sum(doc.saldo_pendiente for doc in todos_los_pendientes)
+
+    # Empezar con todos los documentos pendientes
+    documentos = todos_los_pendientes
+
+    # Aplicar filtros
+    if fecha_inicio:
+        try:
+            year, month = map(int, fecha_inicio.split('-'))
+            documentos = documentos.filter(fecha_emision__year=year, fecha_emision__month=month)
+        except:
+            pass
+
+    if fecha_fin:
+        try:
+            year, month = map(int, fecha_fin.split('-'))
+            documentos = documentos.filter(fecha_emision__year=year, fecha_emision__month__lte=month)
+        except:
+            pass
+
+    if cliente_id:
+        try:
+            documentos = documentos.filter(cliente_id=int(cliente_id))
+        except:
+            pass
+
+    documentos = documentos.order_by('-fecha_emision')
+
+    # === Total del filtro aplicado ===
+    total_filtrado = sum(doc.saldo_pendiente for doc in documentos)
+
+    # ✅ Paginación
+    paginator = Paginator(documentos, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Para el template
+    clientes = Cliente.objects.all().order_by('nombre')
+
+    return render(request, 'documentos/reporte_documentos_pendientes.html', {
+        'page_obj': page_obj,
+        'clientes': clientes,
+        'filtros': request.GET,
+        'total_general': total_general,
+        'total_filtrado': total_filtrado,
+        'today': timezone.now().date(),
+    })
+
+
+
+def reporte_documentos_pendientes_excel(request):
+    # ✅ Verificar permisos (ajusta según tus necesidades)
+    grupos_permitidos = ['Puede Ver Reportes Avanzados']
+    usuarios_permitidos = ['juanc', 'adminaqp', 'maria']
+
+    tiene_grupo = request.user.groups.filter(name__in=grupos_permitidos).exists()
+    es_usuario_especial = request.user.username in usuarios_permitidos
+
+    if not (request.user.is_staff or request.user.is_superuser or tiene_grupo or es_usuario_especial):
+        return HttpResponse("No tienes permiso.", status=403)
+
+    # === Filtros (igual que en la vista principal) ===
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
+    cliente_id = request.GET.get('cliente')
+
+    documentos = Documento.objects.select_related('cliente').all()
+
+    # Filtrar por saldo pendiente > 0
+    documentos = documentos.annotate(
+        saldo_pendiente=F('monto_total') - F('monto_pagado') - F('monto_devolucion')
+    ).filter(saldo_pendiente__gt=Decimal('0.00'))
+
+    # Filtro por mes/año de emisión
+    if fecha_inicio:
+        try:
+            year, month = map(int, fecha_inicio.split('-'))
+            documentos = documentos.filter(fecha_emision__year=year, fecha_emision__month=month)
+        except:
+            pass
+
+    if fecha_fin:
+        try:
+            year, month = map(int, fecha_fin.split('-'))
+            documentos = documentos.filter(fecha_emision__year=year, fecha_emision__month__lte=month)
+        except:
+            pass
+
+    if cliente_id:
+        try:
+            documentos = documentos.filter(cliente_id=int(cliente_id))
+        except:
+            pass
+
+    documentos = documentos.order_by('-fecha_emision')
+
+    # ✅ Preparar datos para Excel
+    data = []
+    for doc in documentos:
+        data.append({
+            'Documento': doc.get_numero_completo(),
+            'Cliente': doc.cliente.nombre,
+            'Fecha Emisión': doc.fecha_emision.strftime('%d/%m/%Y'),
+            'Total': float(doc.monto_total),
+            'Cobrado': float(doc.monto_pagado),
+            'Devolución': float(doc.monto_devolucion),
+            'Pendiente': float(doc.saldo_pendiente),
+            'Vencimiento': doc.fecha_vencimiento.strftime('%d/%m/%Y'),
+            'Estado': 'Parcial' if doc.monto_pagado > 0 else 'Pendiente',
+        })
+
+    df = pd.DataFrame(data)
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="documentos_pendientes.xlsx"'
+    df.to_excel(response, index=False)
+    return response
+
+def reporte_documentos_pendientes_pdf(request):
+    # ✅ Verificar permisos (ajusta según tus necesidades)
+    grupos_permitidos = ['Puede Ver Reportes Avanzados']
+    usuarios_permitidos = ['juanc', 'adminaqp', 'maria']
+
+    tiene_grupo = request.user.groups.filter(name__in=grupos_permitidos).exists()
+    es_usuario_especial = request.user.username in usuarios_permitidos
+
+    if not (request.user.is_staff or request.user.is_superuser or tiene_grupo or es_usuario_especial):
+        return HttpResponse("No tienes permiso.", status=403)
+
+    # === Filtros (igual que en la vista principal) ===
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
+    cliente_id = request.GET.get('cliente')
+
+    documentos = Documento.objects.select_related('cliente').all()
+
+    # Filtrar por saldo pendiente > 0
+    documentos = documentos.annotate(
+        saldo_pendiente=F('monto_total') - F('monto_pagado') - F('monto_devolucion')
+    ).filter(saldo_pendiente__gt=Decimal('0.00'))
+
+    # Filtro por mes/año de emisión
+    if fecha_inicio:
+        try:
+            year, month = map(int, fecha_inicio.split('-'))
+            documentos = documentos.filter(fecha_emision__year=year, fecha_emision__month=month)
+        except:
+            pass
+
+    if fecha_fin:
+        try:
+            year, month = map(int, fecha_fin.split('-'))
+            documentos = documentos.filter(fecha_emision__year=year, fecha_emision__month__lte=month)
+        except:
+            pass
+
+    if cliente_id:
+        try:
+            documentos = documentos.filter(cliente_id=int(cliente_id))
+        except:
+            pass
+
+    documentos = documentos.order_by('-fecha_emision')
+
+    # ✅ Renderizar HTML
+    html_string = render_to_string('documentos/reporte_documentos_pendientes_pdf.html', {
+        'documentos': documentos,
+        'request': request,
+        'filtros': request.GET,
+    })
+
+    # ✅ Generar PDF
+    html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+    pdf = html.write_pdf()
+
+    # ✅ Respuesta HTTP
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="documentos_pendientes.pdf"'
+    return response
+
+
+
+
 
 
 
@@ -40,7 +261,7 @@ from .models import Despacho
 @login_required
 def modo_repartidor(request):
     """Página simple y segura solo para repartidores"""
-    
+
     # ✅ Obtener el último reporte abierto (del día actual o más reciente)
     try:
         ultimo_despacho = Despacho.objects.filter(
@@ -77,7 +298,7 @@ def descargar_plantilla_excel(request):
     ws.title = "Plantilla Documentos"
 
     headers = [
-        "Cliente (Nombre o DNI)", "Tipo", "Serie", "Número", 
+        "Cliente (Nombre o DNI)", "Tipo", "Serie", "Número",
         "Monto Total", "Fecha Emisión (YYYY-MM-DD)", "Fecha Vencimiento (YYYY-MM-DD)"
     ]
     ws.append(headers)
@@ -111,7 +332,7 @@ def importar_documentos_excel(request):
                     fecha_vencimiento = row['Fecha Vencimiento (YYYY-MM-DD)']
 
                     cliente = Cliente.objects.filter(
-                        Q(nombre__icontains=cliente_nombre_o_dni) | 
+                        Q(nombre__icontains=cliente_nombre_o_dni) |
                         Q(dni_ruc=cliente_nombre_o_dni)
                     ).first()
 
@@ -149,7 +370,7 @@ def cliente_search_api(request):
     query = request.GET.get('q', '')
     if len(query) < 2:
         return JsonResponse([], safe=False)
-    
+
     clientes = Cliente.objects.filter(
         Q(nombre__icontains=query) | Q(dni_ruc__icontains=query)
     )[:10]
@@ -162,7 +383,7 @@ def cliente_search_api(request):
             'dni_ruc': cliente.dni_ruc,
             'display': f"{cliente.nombre} ({cliente.dni_ruc})"
         })
-    
+
     return JsonResponse(results, safe=False)
 
 
@@ -200,6 +421,17 @@ def documento_pendiente_autocomplete(request):
     return JsonResponse({'results': results, 'pagination': {'more': False}})
 
 
+
+
+
+
+
+
+
+
+
+
+
 def documento_list(request):
     query = request.GET.get('q', '')
     tipo = request.GET.get('tipo', '')
@@ -216,7 +448,10 @@ def documento_list(request):
     else:
         cliente_id = ''
 
-    documentos = Documento.objects.all()
+    # === ANOTAR saldo_pendiente AL INICIO ===
+    documentos = Documento.objects.annotate(
+        saldo_pendiente=F('monto_total') - F('monto_pagado') - F('monto_devolucion')
+    )
 
     if query:
         documentos = documentos.filter(
@@ -229,10 +464,9 @@ def documento_list(request):
         documentos = documentos.filter(tipo=tipo)
     if cliente_id:
         documentos = documentos.filter(cliente_id=cliente_id)
+
+    # === FILTRO POR ESTADO (usa saldo_pendiente ya anotado) ===
     if estado:
-        documentos = documentos.annotate(
-            saldo_pendiente=F('monto_total') - F('monto_pagado') - F('monto_devolucion')
-        )
         if estado == 'pagado':
             documentos = documentos.filter(saldo_pendiente__lte=0)
         elif estado == 'pendiente':
@@ -260,12 +494,28 @@ def documento_list(request):
 
     documentos = documentos.order_by('-fecha_emision')
 
-    total_monto = documentos.aggregate(total=models.Sum('monto_total'))['total'] or 0
+    # === CÁLCULO DE TOTALES ADICIONALES ===
+    total_monto = documentos.aggregate(total=Sum('monto_total'))['total'] or Decimal('0.00')
 
-    paginator = Paginator(documentos, 15)
+    total_saldos_pendientes = documentos.filter(monto_pagado__lte=0).aggregate(
+        total=Sum('saldo_pendiente')
+    )['total'] or Decimal('0.00')
+
+    total_saldos_parciales = documentos.filter(
+        monto_pagado__gt=0,
+        saldo_pendiente__gt=0
+    ).aggregate(
+        total=Sum('saldo_pendiente')
+    )['total'] or Decimal('0.00')
+
+    total_por_cobrar = total_saldos_pendientes + total_saldos_parciales
+
+    # === PAGINACIÓN ===
+    paginator = Paginator(documentos, 30)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # === DATOS AUXILIARES ===
     clientes = Cliente.objects.all().order_by('nombre')
     hoy = timezone.localtime(timezone.now()).date()
 
@@ -284,11 +534,8 @@ def documento_list(request):
 
     # ✅ Determinar si el usuario es repartidor
     es_repartidor = request.user.groups.filter(name='Repartidores').exists()
-    # Opcional: incluir usuarios específicos como repartidores
     if not es_repartidor:
-        es_repartidor = request.user.username in ['maria_cobrador', 'otro_usuario']
-
-
+        es_repartidor = request.user.username in ['maria_cobrador', 'juanc']
 
     return render(request, 'documentos/documento_list.html', {
         'page_obj': page_obj,
@@ -307,28 +554,90 @@ def documento_list(request):
         'mes_pasado_fin': mes_pasado_fin,
         'año_actual': año_actual,
         'año_pasado': año_pasado,
-        'es_repartidor': es_repartidor,  # ✅ Para usar en base.html
+        'es_repartidor': es_repartidor,
+        'total_saldos_pendientes': total_saldos_pendientes,
+        'total_saldos_parciales': total_saldos_parciales,
+        'total_por_cobrar': total_por_cobrar,
     })
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def documento_create(request):
     if request.method == 'POST':
         form = DocumentoForm(request.POST)
         if form.is_valid():
+            serie = form.cleaned_data['serie']
+            numero = form.cleaned_data['numero']
+
+            # ✅ Validación 1: Si tiene serie, no debe existir otro con (serie + numero)
+            if serie and numero:
+                if Documento.objects.filter(serie=serie, numero=numero).exists():
+                    messages.error(
+                        request,
+                        f"❌ Ya existe un documento con la serie '{serie}' y número '{numero}'."
+                    )
+                    return render(request, 'documentos/documento_form.html', {
+                        'form': form,
+                        'title': 'Crear Documento'
+                    })
+
+            # ✅ Validación 2: Si NO tiene serie, no debe existir otro sin serie con ese número
+            if not serie and numero:
+                if Documento.objects.filter(serie__isnull=True, numero=numero).exists():
+                    messages.error(
+                        request,
+                        f"❌ Ya existe un documento sin serie con el número '{numero}'. "
+                        "Si deseas usarlo, asigna una serie para diferenciarlo."
+                    )
+                    return render(request, 'documentos/documento_form.html', {
+                        'form': form,
+                        'title': 'Crear Documento'
+                    })
+
+            # ✅ Si pasa ambas validaciones, guardamos
             documento = form.save()
-            registrar_log(
-                usuario=request.user,
-                cobrador=documento.cobrador,
-                categoria='documento',
-                accion='Creó documento',
-                descripcion=f"Tipo: {documento.get_tipo_display()}, Número: {documento.get_numero_completo()}, Cliente: {documento.cliente.nombre}"
-            )
+
+            # ✅ Registrar en log
+            try:
+                from clientes.utils import registrar_log
+                registrar_log(
+                    usuario=request.user,
+                    cobrador=documento.cobrador,
+                    categoria='documento',
+                    accion='Creó documento',
+                    descripcion=f"Tipo: {documento.get_tipo_display()}, "
+                                f"Número: {documento.get_numero_completo()}, "
+                                f"Cliente: {documento.cliente.nombre}"
+                )
+            except Exception as e:
+                print(f"⚠️ Error al registrar log: {e}")
+                pass  # No detener todo por error de log
+
             messages.success(request, f'Documento {documento.get_numero_completo()} creado exitosamente.')
+
+            # ✅ Redirigir a donde vino
             next_url = request.POST.get('next')
-            return redirect(next_url) if next_url else redirect('documentos:documento_list')
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('documentos:documento_list')
+
         else:
-            messages.error(request, 'Por favor corrige los errores.')
+            messages.error(request, 'Por favor corrige los errores del formulario.')
+
     else:
+        # ✅ Inicializar con cliente si viene en GET
         cliente_id = request.GET.get('cliente')
         initial = {}
         if cliente_id:
@@ -342,6 +651,12 @@ def documento_create(request):
         'form': form,
         'title': 'Crear Documento'
     })
+
+
+
+
+
+
 
 
 def documento_update(request, pk):
@@ -359,8 +674,37 @@ def documento_update(request, pk):
     if request.method == 'POST':
         form = DocumentoForm(request.POST, instance=documento)
         if form.is_valid():
+            serie = form.cleaned_data['serie']
+            numero = form.cleaned_data['numero']
+
+            # ✅ Validación 1: Si tiene serie → no debe existir otro con (serie + numero) que NO sea este documento
+            if serie and numero:
+                if Documento.objects.filter(serie=serie, numero=numero).exclude(pk=pk).exists():
+                    messages.error(
+                        request,
+                        f"❌ Ya existe otro documento con la serie '{serie}' y número '{numero}'."
+                    )
+                    return render(request, 'documentos/documento_form.html', {
+                        'form': form,
+                        'title': 'Editar Documento'
+                    })
+
+            # ✅ Validación 2: Si NO tiene serie → no debe existir otro sin serie con ese número (excluyendo este)
+            if not serie and numero:
+                if Documento.objects.filter(serie__isnull=True, numero=numero).exclude(pk=pk).exists():
+                    messages.error(
+                        request,
+                        f"❌ Ya existe otro documento sin serie con el número '{numero}'."
+                    )
+                    return render(request, 'documentos/documento_form.html', {
+                        'form': form,
+                        'title': 'Editar Documento'
+                    })
+
+            # ✅ Si pasa las validaciones, guardamos
             documento = form.save()
             cambios = []
+
             if original['tipo'] != documento.get_tipo_display():
                 cambios.append(f"Tipo: {original['tipo']} → {documento.get_tipo_display()}")
             if original['serie'] != documento.serie:
@@ -385,9 +729,11 @@ def documento_update(request, pk):
                     accion='Editó documento',
                     descripcion=descripcion
                 )
+
             messages.success(request, 'Documento actualizado exitosamente.')
             next_url = request.POST.get('next')
             return redirect(next_url) if next_url else redirect('documentos:documento_list')
+
     else:
         form = DocumentoForm(instance=documento)
 
@@ -397,30 +743,82 @@ def documento_update(request, pk):
     })
 
 
+
+
+
+
+
+
+
+
+
+
+
 def documento_delete(request, pk):
+
+
+    # ✅ Solo staff/superuser o usuarios específicos pueden eliminar
+    usuarios_permitidos = ['adminaqp', 'CHRISTIAN', 'juanc']
+    if not (request.user.is_staff or request.user.is_superuser or request.user.username in usuarios_permitidos):
+        messages.error(request, "No tienes permiso para eliminar documentos.")
+        return redirect('documentos:documento_detail', pk=pk)
+
+
     try:
-        documento = get_object_or_404(Documento, pk=pk)
-        if documento.monto_pagado > 0 or documento.monto_devolucion > 0:
-            messages.error(request, 'No se puede eliminar un documento con pagos o devoluciones registrados.')
+        # ✅ Cargar con select_related
+        documento = get_object_or_404(
+            Documento.objects.select_related('cliente'),
+            pk=pk
+        )
+
+        # ✅ Validaciones
+        if documento.monto_pagado > 0:
+            messages.error(request, 'No se puede eliminar un documento con pagos registrados.')
+            return redirect('documentos:documento_detail', pk=pk)
+
+        if documento.monto_devolucion > 0:
+            messages.error(request, 'No se puede eliminar un documento con devoluciones registradas.')
+            return redirect('documentos:documento_detail', pk=pk)
+
+        from documentos.models import DetalleDespacho
+        if DetalleDespacho.objects.filter(documento=documento).exists():
+            messages.error(request, 'No se puede eliminar: está incluido en un reporte de reparto.')
+            return redirect('documentos:documento_detail', pk=pk)
+
+        from cobros.models import Cobro
+        if Cobro.objects.filter(documento=documento).exists():
+            messages.error(request, 'No se puede eliminar: hay cobros vinculados.')
+            return redirect('documentos:documento_detail', pk=pk)
+
+        from devoluciones.models import Devolucion
+        if Devolucion.objects.filter(documento=documento).exists():
+            messages.error(request, 'No se puede eliminar: hay devoluciones vinculadas.')
             return redirect('documentos:documento_detail', pk=pk)
 
         if request.method == 'POST':
-            num = f"{documento.serie}-{documento.numero}" if documento.serie else str(documento.numero or "Sin número")
-            cliente_nombre = documento.cliente.nombre if documento.cliente else "Cliente desconocido"
-            referencia = documento.referencia or "Sin referencia"
-            documento.delete()
+            num = f"{documento.serie}-{documento.numero}" if documento.serie else str(documento.numero)
+            cliente_nombre = documento.cliente.nombre if documento.cliente else "Desconocido"
 
+            # ✅ Eliminar antes de cualquier registro para aislar el problema
             try:
-                from clientes.models import LogActividad
-                LogActividad.objects.create(
-                    usuario=request.user if request.user.is_authenticated else None,
-                    cobrador=None,
+                documento.delete()  # ← Este es el punto crítico
+            except Exception as e:
+                print(f"❌ ERROR REAL AL ELIMINAR DOCUMENTO {pk}: {type(e).__name__}: {e}")
+                messages.error(request, f'Error al eliminar: {type(e).__name__}')
+                return redirect('documentos:documento_list')
+
+            # ✅ Registrar log SOLO si eliminación fue exitosa
+            try:
+                from clientes.utils import registrar_log
+                registrar_log(
+                    usuario=request.user,
                     categoria='documento',
                     accion='Eliminó documento',
-                    descripcion=f"Documento: {num}, Cliente: {cliente_nombre}, Referencia: {referencia}"
+                    descripcion=f"Documento: {num}, Cliente: {cliente_nombre}"
                 )
-            except:
-                pass
+            except Exception as log_error:
+                print(f"⚠️ Error al registrar log: {log_error}")
+                pass  # No es crítico
 
             messages.success(request, f'Documento {num} eliminado exitosamente.')
             return redirect('documentos:documento_list')
@@ -428,9 +826,28 @@ def documento_delete(request, pk):
         return render(request, 'documentos/documento_confirm_delete.html', {'documento': documento})
 
     except Exception as e:
-        print(f"❌ Error en documento_delete: {e}")
-        messages.error(request, 'Ocurrió un error inesperado.')
+        # ✅ Mostrar el error real en consola
+        print(f"❌ Excepción general en documento_delete: {type(e).__name__}: {e}")
+        messages.error(request, f'Ocurrió un error: {type(e).__name__}')
         return redirect('documentos:documento_list')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def documento_export_excel(request):
@@ -561,7 +978,7 @@ def documento_detail(request, pk):
     except Documento.DoesNotExist:
         messages.warning(request, 'El documento ya no existe.')
         return redirect('documentos:documento_list')
-    
+
     cobros_list = Cobro.objects.filter(documento=documento).order_by('-fecha')
     devoluciones_list = Devolucion.objects.filter(documento=documento).order_by('-fecha')
 
@@ -606,9 +1023,9 @@ def despacho_detalle(request, despacho_id):
     despacho = get_object_or_404(Despacho, pk=despacho_id)
 
     if not (
-        request.user == despacho.repartidor 
-        or request.user.is_staff 
-        or request.user.is_superuser 
+        request.user == despacho.repartidor
+        or request.user.is_staff
+        or request.user.is_superuser
         or request.user.groups.filter(name='Encargados Reparto').exists()
         or request.user.username in USUARIOS_PERMITIDOS
     ):
@@ -655,8 +1072,8 @@ def despacho_lista(request):
 
     # 🔐 Restringir acceso
     if not (
-        request.user.is_staff 
-        or request.user.is_superuser 
+        request.user.is_staff
+        or request.user.is_superuser
         or request.user.groups.filter(name='Encargados Reparto').exists()
         or request.user.groups.filter(name='Puede Crear Reportes').exists()
         or request.user.username in USUARIOS_PERMITIDOS
@@ -677,7 +1094,7 @@ def despacho_lista(request):
 
         # Calcular saldo pendiente REAL de todos los documentos
         saldo_pendiente_real = sum(
-            det.documento.get_saldo_pendiente() 
+            det.documento.get_saldo_pendiente()
             for det in detalles
         )
 
@@ -750,8 +1167,8 @@ def despacho_crear(request):
 
     # ✅ Permisos ampliados: staff, superuser, encargados pueden elegir repartidor
     if (
-        request.user.is_staff 
-        or request.user.is_superuser 
+        request.user.is_staff
+        or request.user.is_superuser
         or request.user.username in USUARIOS_PERMITIDOS_CREAR
         or request.user.groups.filter(name='Encargados Reparto').exists()
     ):
@@ -823,9 +1240,9 @@ def despacho_agregar_documento(request, despacho_id):
 
     # ✅ Verificar permisos: repartidor, staff, superuser, encargado o permitido
     if not (
-        request.user == despacho.repartidor 
-        or request.user.is_staff 
-        or request.user.is_superuser 
+        request.user == despacho.repartidor
+        or request.user.is_staff
+        or request.user.is_superuser
         or request.user.groups.filter(name='Encargados Reparto').exists()
         or request.user.username in USUARIOS_PERMITIDOS
     ):
@@ -870,9 +1287,9 @@ def despacho_registrar_cobro(request, despacho_id):
     despacho = get_object_or_404(Despacho, pk=despacho_id)
 
     # if not (
-    #     request.user == despacho.repartidor 
-    #     or request.user.is_staff 
-    #     or request.user.is_superuser 
+    #     request.user == despacho.repartidor
+    #     or request.user.is_staff
+    #     or request.user.is_superuser
     #     or request.user.groups.filter(name='Encargados Reparto').exists()
     #     or request.user.groups.filter(name='Repartidor').exists()
     #     or request.user.username in USUARIOS_PERMITIDOS
@@ -899,7 +1316,7 @@ def despacho_registrar_cobro(request, despacho_id):
 
     if request.method == 'POST':
         total_cobrado = Decimal('0.00')
-        
+
         for key, value in request.POST.items():
             if key.startswith('cobrado_'):
                 detalle_id = key.replace('cobrado_', '')
@@ -947,10 +1364,10 @@ def despacho_registrar_cobro(request, despacho_id):
                             referencia=f"REPARTO-{despacho.fecha}",
                             notas=f"Cobro parcial en reparto. Medio: {detalle.get_medio_pago_display() or 'N/A'}. Obs: {detalle.observaciones or ''}",
                             tipo_pago=detalle.medio_pago or 'otro',
-                            
+
                             correlativo=generar_correlativo(),
                             usuario_registro=request.user  # ✅ ¡Este es el cambio clave!
-                            
+
                         )
 
                     total_cobrado += cobrado
@@ -984,11 +1401,11 @@ def despacho_registrar_cobro(request, despacho_id):
 @login_required
 def despacho_cerrar(request, despacho_id):
     despacho = get_object_or_404(Despacho, pk=despacho_id)
-    
+
     # ✅ Verificar permisos
     if (
-        request.user.is_staff 
-        or request.user.is_superuser 
+        request.user.is_staff
+        or request.user.is_superuser
         or request.user == despacho.creado_por
         or request.user.groups.filter(name='Encargados Reparto').exists()
     ):
@@ -1017,11 +1434,11 @@ def despacho_cerrar(request, despacho_id):
 @login_required
 def despacho_reabrir(request, despacho_id):
     despacho = get_object_or_404(Despacho, pk=despacho_id)
-    
+
     # ✅ Corregido: 'Encargados Reparto' (no 'Repar5to')
     if (
-        request.user.is_staff 
-        or request.user.is_superuser 
+        request.user.is_staff
+        or request.user.is_superuser
         or request.user.groups.filter(name='Encargados Repar55to').exists()
     ):
         despacho.estado = 'abierto'
@@ -1043,14 +1460,14 @@ def despacho_reabrir(request, despacho_id):
         messages.success(request, "✅ Despacho reabierto.")
     else:
         messages.error(request, "No tienes permiso para reabrir este reporte.")
-        
+
     return redirect('documentos:despacho_detalle', despacho_id=despacho.id)
 
 
 # @login_required
 # def despacho_eliminar(request, despacho_id):
 #     despacho = get_object_or_404(Despacho, pk=despacho_id)
-    
+
 #     if request.user.is_staff or request.user.is_superuser:
 #         # ✅ Verificar si ya hay cobros reales
 #         from cobros.models import Cobro
@@ -1067,7 +1484,7 @@ def despacho_reabrir(request, despacho_id):
 #         repartidor_nombre = despacho.repartidor.get_full_name() or despacho.repartidor.username
 #         despacho.delete()
 #         messages.success(request, f"🗑️ Despacho de {repartidor_nombre} eliminado.")
-        
+
 #     return redirect('documentos:despacho_lista')
 
 
@@ -1076,14 +1493,14 @@ def despacho_reabrir(request, despacho_id):
 # @login_required
 # def despacho_eliminar(request, despacho_id):
 #     despacho = get_object_or_404(Despacho, pk=despacho_id)
-    
+
 #     if (
-#         request.user.is_staff 
-#         or request.user.is_superuser 
+#         request.user.is_staff
+#         or request.user.is_superuser
 #         or request.user.groups.filter(name='Encargados Reparto').exists()
 #     ):
 #         repartidor_nombre = despacho.repartidor.get_full_name() or despacho.repartidor.username
-        
+
 #         detalles = despacho.detalles.all()
 #         from cobros.models import Cobro
 #         documentos_ids = [d.documento.id for d in detalles]
@@ -1096,7 +1513,7 @@ def despacho_reabrir(request, despacho_id):
 #         messages.success(request, f"🗑️ Despacho de {repartidor_nombre} eliminado. Pagos asociados anulados.")
 #     else:
 #         messages.error(request, "No tienes permiso para eliminar este reporte.")
-        
+
 #     return redirect('documentos:despacho_lista')
 
 
@@ -1106,17 +1523,17 @@ def despacho_reabrir(request, despacho_id):
 @login_required
 def despacho_eliminar(request, despacho_id):
     despacho = get_object_or_404(Despacho, pk=despacho_id)
-    
+
     if request.user.is_staff or request.user.is_superuser:
         repartidor_nombre = despacho.repartidor.get_full_name() or despacho.repartidor.username
-        
+
         # ✅ Obtener todos los detalles antes de eliminar
         detalles = despacho.detalles.all()
-        
+
         # ✅ Obtener IDs de documentos para actualizar después
         from cobros.models import Cobro
         documentos_ids = [d.documento.id for d in detalles]
-        
+
         # ✅ Eliminar primero los Cobros relacionados
         cobros_eliminados = Cobro.objects.filter(
             documento__id__in=documentos_ids,
@@ -1133,7 +1550,7 @@ def despacho_eliminar(request, despacho_id):
 
         # ✅ Luego eliminar el despacho
         despacho.delete()
-        
+
         messages.success(request, f"🗑️ Despacho de {repartidor_nombre} eliminado. {count} pago(s) asociado(s) anulado(s) y montos actualizados.")
     else:
         messages.error(request, "No tienes permiso para eliminar este reporte.")
@@ -1149,8 +1566,8 @@ def despacho_pdf(request, despacho_id):
     despacho = get_object_or_404(Despacho, pk=despacho_id)
 
     if not (
-        request.user == despacho.creado_por 
-        or request.user.is_superuser 
+        request.user == despacho.creado_por
+        or request.user.is_superuser
         or request.user.groups.filter(name='Encargados Reparto').exists()
         or request.user.username in USUARIOS_PERMITIDOS
     ):
@@ -1177,9 +1594,9 @@ def despacho_liquidacion_pdf(request, despacho_id):
     despacho = get_object_or_404(Despacho, pk=despacho_id)
 
     if not (
-        request.user == despacho.repartidor 
-        or request.user == despacho.creado_por 
-        or request.user.is_superuser 
+        request.user == despacho.repartidor
+        or request.user == despacho.creado_por
+        or request.user.is_superuser
         or request.user.groups.filter(name='Encargados Reparto').exists()
         or request.user.username in USUARIOS_PERMITIDOS
     ):
@@ -1245,7 +1662,7 @@ def despacho_export_excel(request):
     for d in despachos:
         # Obtener todos los documentos del reparto
         detalles = d.detalles.select_related('documento').all()
-        
+
         total_enviado = Decimal('0.00')
         total_cobrado_real = Decimal('0.00')  # Sumar todos los cobros, no solo del reparto
 
@@ -1336,15 +1753,15 @@ def despacho_export_pdf(request):
     despachos_con_totales = []
     for d in despachos:
         detalles = d.detalles.all()
-        
+
         total_enviado = sum(det.documento.monto_total for det in detalles)
-        
+
         # Calcular saldo pendiente real usando el método del modelo
         saldo_pendiente_real = sum(
-            det.documento.get_saldo_pendiente() 
+            det.documento.get_saldo_pendiente()
             for det in detalles
         )
-        
+
         total_cobrado_real = total_enviado - saldo_pendiente_real
 
         # Añadir atributos calculados al objeto

@@ -47,4 +47,20 @@ urlpatterns = [
 
     path('admin-reporte-planillas/pdf/', views.admin_reporte_planillas_pdf, name='admin_reporte_planillas_pdf'),
 
+    path('mis-cierres/pdf/', views.mis_cierres_pdf, name='mis_cierres_pdf'),
+
+    path('cerrar-planilla-fecha/', views.cerrar_planilla_fecha_especifica, name='cerrar_planilla_fecha_especifica'),
+
+    path('calcular-total/', views.calcular_total_cobrado, name='calcular_total_cobrado'),
+
+
+    path('planilla/<int:pk>/actualizar/', views.actualizar_planilla, name='actualizar_planilla'),
+
+
+
+    path('planilla/<int:pk>/eliminar/', views.eliminar_planilla, name='eliminar_planilla'),
+
+
+
+
 ]

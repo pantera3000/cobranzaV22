@@ -61,7 +61,7 @@ def descargar_plantilla_clientes_excel(request):
 def importar_clientes_excel(request):
     if request.method == 'POST' and request.FILES.get('archivo_excel'):
         archivo = request.FILES['archivo_excel']
-        
+
         try:
             # Leer Excel
             df = pd.read_excel(archivo)
@@ -72,17 +72,17 @@ def importar_clientes_excel(request):
                 try:
                     nombre = str(row['Nombre']).strip()
                     dni_ruc = str(row['DNI/RUC']).strip()
-                    
+
                     # Campos opcionales
                     telefono = str(row.get('Teléfono', '')).strip()
                     telefono = telefono if telefono != 'nan' else ''
-                    
+
                     correo = str(row.get('Correo', '')).strip()
                     correo = correo if correo != 'nan' else ''
-                    
+
                     direccion = str(row.get('Dirección', '')).strip()
                     direccion = direccion if direccion != 'nan' else ''
-                    
+
                     notas = str(row.get('Notas', '')).strip()
                     notas = notas if notas != 'nan' else ''
 
@@ -216,7 +216,7 @@ def cliente_list(request):
     else:
         clientes = Cliente.objects.all()
 
-    paginator = Paginator(clientes, 10)  # 10 por página
+    paginator = Paginator(clientes, 30)  # 10 por página
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -263,7 +263,7 @@ def cliente_detail(request, pk):
 
 
 
-    
+
 
     # Filtros y paginación para Devoluciones
     devoluciones_query = request.GET.get('devoluciones_q')

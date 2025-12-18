@@ -9,8 +9,8 @@
     <!-- Font Awesome para iconos -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { 
-            background-color: #f8f9fa; 
+        body {
+            background-color: #f8f9fa;
             padding-top: 0;
         }
         .header-container {
@@ -43,24 +43,24 @@
         .navbar {
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .card { 
-            border-radius: 10px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .btn { 
-            border-radius: 5px; 
+        .btn {
+            border-radius: 5px;
         }
-        .dropdown-menu { 
-            border-radius: 8px; 
+        .dropdown-menu {
+            border-radius: 8px;
         }
-        .dropdown-item:hover { 
-            background-color: #e9ecef; 
+        .dropdown-item:hover {
+            background-color: #e9ecef;
         }
-        footer { 
-            margin-top: 50px; 
-            padding: 20px 0; 
-            background-color: #343a40; 
-            color: white; 
+        footer {
+            margin-top: 50px;
+            padding: 20px 0;
+            background-color: #343a40;
+            color: white;
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -152,7 +152,7 @@
                                         <li><span class="dropdown-item-text text-muted"><small><i class="fas fa-id-badge"></i> {{ user.username }}</small></span></li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li><a class="dropdown-item" href="{% url 'clientes:cliente_list' %}"><i class="fas fa-home"></i> Inicio</a></li>
-                                        {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'maria' %}
+                                        {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'CHRISTIAN' %}
                                             <li><a class="dropdown-item" href="{% url 'clientes:log_actividad' %}"><i class="fas fa-clipboard-list"></i> Auditoría</a></li>
                                             <li><a class="dropdown-item" href="{% url 'cobros:reporte_cartera' %}"><i class="fas fa-chart-line"></i> Reporte de Cartera</a></li>
                                         {% endif %}
@@ -226,7 +226,7 @@
                                 </li>
 
                                 <!-- Menú: Cobradores (solo para staff, admin, encargados) -->
-                                {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA' %}
+                                {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA,CHRISTIAN' %}
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                             <i class="fas fa-user-shield"></i> Cobradores
@@ -239,14 +239,27 @@
                                             <li><a class="dropdown-item" href="{% url 'cobradores:cobrador_export_excel' %}"><i class="fas fa-file-excel text-success"></i> Exportar a Excel</a></li>
                                             <li><hr class="dropdown-divider"></li>
                                             <li><a href="{% url 'cobros:mis_cierres' %}" class="btn btn-outline-info btn-sm d-block mx-3 mb-2">Mis Cierres</a></li>
-                                            {% if user.is_superuser or user.username in 'juanc,VALERIA,adminaqp' %}
-                                                <li><a href="{% url 'cobros:cerrar_planilla_del_dia' %}" class="btn btn-warning btn-sm d-block mx-3 mb-2">Cerrar Planilla (Admin)</a></li>
+                                            {% if user.is_superuser or user.username in 'juanc,VALERIA,adminaqp,CHRISTIAN' %}
+                                                <li><a href="{% url 'cobros:cerrar_planilla_del_dia' %}" class="btn btn-warning btn-sm d-block mx-3 mb-2">Crear//Cerrar Planilla </a></li>
+                                                <!-- <li><a href="{% url 'cobros:admin_reporte_planillas' %}" class="btn btn-warning btn-sm d-block mx-3 mb-2">Reporte de Planillas</a></li> -->
+
+
+
+
+
+                                            {% endif %}
+                                            {% if user.is_superuser or user.username in 'juanc,VALWERIA,adminaqp,CHRISTIAN' %}
                                                 <li><a href="{% url 'cobros:admin_reporte_planillas' %}" class="btn btn-warning btn-sm d-block mx-3 mb-2">Reporte de Planillas</a></li>
+                                                <li><a class="btn btn-warning btn-sm d-block mx-3 mb-2" href="{% url 'cobros:cerrar_planilla_fecha_especifica' %}">
+                                                    <i class="fas fa-calendar-check"></i> Cierre de Fecha Específica
+                                                </a></li>
+
                                             {% endif %}
                                         </ul>
                                     </li>
                                 {% endif %}
 
+                                <!-- Menú: Reportes (solo para staff, admin, encargados) -->
                                 <!-- Menú: Reportes (solo para staff, admin, encargados) -->
                                 {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA' %}
                                     <li class="nav-item dropdown">
@@ -263,6 +276,13 @@
                                             <li><a class="dropdown-item" href="{% url 'cobros:historial_referencias' %}"><i class="fas fa-history"></i> Historial de Referencias</a></li>
                                             <li><a class="dropdown-item" href="{% url 'cobros:reporte_cartera' %}"><i class="fas fa-chart-pie"></i> Reporte de Cartera</a></li>
                                             <li><hr class="dropdown-divider"></li>
+                                            <!-- Nuevo: Documentos Pendientes y Parciales -->
+                                            {% if user.username == 'juanc' or user.username == 'adminaqp' or user.username == 'CHRISTIAN' %}
+                                                <li><a class="dropdown-item" href="{% url 'documentos:reporte_documentos_pendientes' %}">
+                                                    <i class="fas fa-exclamation-triangle text-warning"></i> Documentos Pendientes
+                                                </a></li>
+                                            {% endif %}
+                                            <li><hr class="dropdown-divider"></li>
                                             <li class="dropdown-header"><i class="fas fa-trophy"></i> Metas de Cobranza</li>
                                             <li><a class="dropdown-item" href="{% url 'cobros:historial_metas' %}"><i class="fas fa-history"></i> Historial de Metas</a></li>
                                             {% now "Y" as current_year %}
@@ -272,7 +292,7 @@
                                     </li>
                                 {% endif %}
 
-                                {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA' %}
+                                {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALEeeeRIA,CHRISTIAN' %}
                                     <!-- Menú: Reparto -->
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -323,7 +343,7 @@
                     <!-- Fila: Título y porcentaje (siempre visible) -->
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="mb-0 text-primary fw-bold">
-                            <i class="fas fa-bullseye me-1"></i> 
+                            <i class="fas fa-bullseye me-1"></i>
                             Meta Cobranza {{ meta.mes|date:"M Y" }}
                         </h6>
                         <span class="badge bg-primary text-white px-3 py-2">
@@ -346,9 +366,9 @@
                     </div>
 
                     <!-- Fila: Botón (solo para usuarios autorizados) -->
-                    {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'maria' %}
+                    {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'CHRISTIAN' %}
                         <div class="text-end mt-2">
-                            <a href="{% url 'cobros:reporte_cartera' %}" 
+                            <a href="{% url 'cobros:reporte_cartera' %}"
                                class="btn btn-sm btn-outline-primary px-3">
                                 <i class="fas fa-chart-line me-1"></i> Ver Reporte
                             </a>
@@ -361,7 +381,7 @@
 {% endif %}
 
 
-    
+
     <!-- Contenido principal -->
     <div class="container mt-4">
         {% if messages %}
@@ -379,7 +399,7 @@
     <!-- Footer -->
     <footer class="text-center">
         <div class="container">
-            Sistema de Cuentas por Cobrar NATIVA 
+            Sistema de Cuentas por Cobrar NATIVA
         </div>
     </footer>
 
@@ -394,7 +414,7 @@
 
 <!-- Recordatorio flotante de meta mensual -->
 {% if user.is_authenticated and not meta %}
-    <div id="meta-reminder" class="position-fixed bottom-0 start-0 m-3 p-3 bg-warning bg-opacity-10 border border-warning rounded shadow-sm" 
+    <div id="meta-reminder" class="position-fixed bottom-0 start-0 m-3 p-3 bg-warning bg-opacity-10 border border-warning rounded shadow-sm"
          style="z-index: 1000; max-width: 300px; font-size: 0.9rem;">
         <div class="d-flex justify-content-between align-items-start">
             <div>
@@ -405,12 +425,12 @@
                     No has establecido la meta de cobranzas para este mes.
                 </p>
             </div>
-            <button type="button" class="btn-close btn-close-white ms-2" 
-                    style="font-size: 0.6rem;" 
+            <button type="button" class="btn-close btn-close-white ms-2"
+                    style="font-size: 0.6rem;"
                     onclick="document.getElementById('meta-reminder').remove();"
                     title="Cerrar notificación"></button>
         </div>
-        <a href="{% url 'cobros:meta_create_or_update' %}" 
+        <a href="{% url 'cobros:meta_create_or_update' %}"
            class="btn btn-warning btn-sm mt-2 w-100 btn-sm">
             <i class="fas fa-plus"></i> Crear Meta
         </a>

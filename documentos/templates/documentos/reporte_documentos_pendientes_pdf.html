@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Documentos Pendientes</title>
+    <style>
+        /* Orientación horizontal */
+        @page {
+            size: landscape;
+            margin: 1cm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10px; /* Un poco más pequeño para ahorrar espacio */
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .header h2 {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .header p {
+            margin: 3px 0;
+            font-size: 11px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 6px;
+            text-align: left;
+            border: 1px solid #ccc;
+            white-space: nowrap; /* Evita saltos de línea */
+        }
+
+        th {
+            background-color: #f9f9b7;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        td.text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        /* Para pantallas pequeñas o muchos datos */
+        small {
+            font-size: 9px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>NATIVA - Documentos Pendientes y con Pagos Parciales</h2>
+        {% if filtros.fecha_inicio %}
+            <p><strong>Desde:</strong> {{ filtros.fecha_inicio }}</p>
+        {% endif %}
+        {% if filtros.fecha_fin %}
+            <p><strong>Hasta:</strong> {{ filtros.fecha_fin }}</p>
+        {% endif %}
+        <p><strong>Generado el:</strong> {% now "d/m/Y H:i" %}</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Doc</th>
+                <th>Cliente</th>
+                <th>Emisión</th>
+                <th>Total</th>
+                <th>Cobrado</th>
+                <th>Devolución</th>
+                <th>Pendiente</th>
+                <th>Vencimiento</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc in documentos %}
+            <tr>
+                <td>{{ doc.get_numero_completo }}</td>
+                <td>{{ doc.cliente.nombre|truncatechars:30 }}</td>
+                <td>{{ doc.fecha_emision|date:"d/m/Y" }}</td>
+                <td class="text-right">S/ {{ doc.monto_total|floatformat:2 }}</td>
+                <td class="text-right">S/ {{ doc.monto_pagado|floatformat:2 }}</td>
+                <td class="text-right">S/ {{ doc.monto_devolucion|floatformat:2 }}</td>
+                <td class="text-right fw-bold">S/ {{ doc.saldo_pendiente|floatformat:2 }}</td>
+                <td>{{ doc.fecha_vencimiento|date:"d/m/Y" }}</td>
+                <td>
+                    {% if doc.get_saldo_pendiente <= 0 %}
+                        Pagado
+                    {% elif doc.monto_pagado > 0 %}
+                        Parcial
+                    {% else %}
+                        Pendiente
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" class="text-center">No hay documentos pendientes.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

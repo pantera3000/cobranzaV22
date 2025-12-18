@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Pagos de {{ cobrador.nombre }}</title>
+    <style>
+        @page {
+            size: landscape;
+            margin: 0.7cm;
+            @bottom-center {
+                content: "Página " counter(page) " de " counter(pages);
+                font-size: 9px;
+                color: #666;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            font-size: 10.5px;
+        }
+
+        /* Encabezado */
+        .header-container {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+
+        .company-info h1 {
+            margin: 0 0 4px 0;
+            font-size: 16px;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        .company-info p {
+            margin: 2px 0;
+            font-size: 11px;
+            color: #555;
+        }
+
+        /* Títulos del reporte */
+        .report-title {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin: 5px 0;
+        }
+
+        .filter-info {
+            text-align: center;
+            font-size: 11px;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        /* Información general */
+        .info-box {
+            text-align: center;
+            font-size: 11px;
+            margin-bottom: 12px;
+        }
+
+        .info-box p {
+            margin: 4px 0;
+        }
+
+        /* Tabla */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-top: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 4px 4px;
+            text-align: left;
+            vertical-align: top;
+            word-wrap: break-word;
+            line-height: 1.3;
+            font-size: 9.5px;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 9px;
+            text-align: center;
+            padding: 5px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        /* Anchos optimizados */
+        .col-documento   { width: 16%; }
+        .col-cliente     { width: 22%; }
+        .col-monto       { width: 8%; text-align: right; }
+        .col-referencia  { width: 10%; }
+        .col-notas       { width: 14%; }
+        .col-fecha       { width: 10%; }
+        .col-registrado  { width: 8%; }
+
+        /* Formato especial */
+        .monto {
+            font-weight: bold;
+            color: #155724;
+        }
+
+        .total-box {
+            text-align: right;
+            margin-top: 12px;
+            font-weight: bold;
+            font-size: 11px;
+            border-top: 1px dashed #ccc;
+            padding-top: 6px;
+        }
+
+        .total-cobrado {
+            color: #155724;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Encabezado -->
+    <div class="header-container">
+        <div class="company-info">
+            <h1>NATIVA PERU</h1>
+            <p><strong>RUC:</strong> 000000000</p>
+            <p><strong>Dirección:</strong> Arequipa, Perú</p>
+            <p><strong>Teléfono:</strong> 999 999 999 | <strong>Email:</strong> mail@mail.com</p>
+        </div>
+    </div>
+
+    <!-- Título del reporte -->
+    <div class="report-title">REPORTE DE PAGOS REALIZADOS</div>
+    <div class="report-title">{{ cobrador.nombre }}</div>
+
+    <!-- Filtro aplicado -->
+    <div class="filter-info">
+        <strong>Filtro:</strong> {{ filtro_label }}
+    </div>
+
+    <!-- Información de fechas y total -->
+    <div class="info-box">
+        <p>
+            <strong>Desde:</strong> {{ fecha_desde|date:"d/m/Y" }} &nbsp;&nbsp;
+            <strong>Hasta:</strong> {{ fecha_hasta|date:"d/m/Y" }}
+        </p>
+        <p>
+            <strong>Total Cobrado:</strong>
+            <span class="total-cobrado">S/ {{ total_cobrado|floatformat:2 }}</span>
+        </p>
+    </div>
+
+    <!-- Tabla de pagos -->
+    <table>
+        <thead>
+            <tr>
+                <th class="col-documento">Documento</th>
+                <th class="col-cliente">Cliente</th>
+                <th class="col-monto">Monto</th>
+                <th class="col-referencia">Referencia</th>
+                <th class="col-notas">Notas</th>
+                <th class="col-fecha">Fecha Pago</th>
+                <th class="col-registrado">Registrado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cobro in cobros %}
+            <tr>
+                <td class="col-documento">
+                    <div style="font-size: 9px;">{{ cobro.documento.get_tipo_display }}</div>
+                    <div style="font-weight: bold; font-size: 10px;">{{ cobro.documento.get_numero_completo }}</div>
+                </td>
+                <td class="col-cliente" style="font-size: 10px;">{{ cobro.documento.cliente.nombre }}</td>
+                <td class="col-monto monto">S/ {{ cobro.monto|floatformat:2 }}</td>
+                <td class="col-referencia" style="font-size: 9px;">{{ cobro.referencia|default:"–" }}</td>
+                <td class="col-notas" style="font-size: 8.5px; white-space: pre-line;">{{ cobro.notas|default:"–" }}</td>
+                <td class="col-fecha" style="font-size: 9px;">{{ cobro.fecha|date:"d/m H:i" }}</td>
+                <td class="col-registrado" style="font-size: 9px;">{{ cobro.usuario_registro.username|default:"Sis" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Total de registros -->
+    <div class="total-box">
+        Total de pagos registrados: {{ cobros|length }}
+    </div>
+
+</body>
+</html>

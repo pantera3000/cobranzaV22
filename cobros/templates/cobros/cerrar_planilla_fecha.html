@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Cierre de Fecha Específica{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-calendar-alt"></i> Cierre de Fecha Específica</h2>
+    <button type="button" class="btn btn-secondary btn-sm" onclick="window.history.back();">
+        <i class="fas fa-arrow-left"></i> Volver
+    </button>
+</div>
+
+<form method="post" class="card p-4 shadow-sm">
+    {% csrf_token %}
+
+    <div class="row g-3">
+        <div class="col-md-5">
+            <label for="cobrador" class="form-label">Cobrador</label>
+            <select name="cobrador" id="cobrador" class="form-select" required>
+                <option value="">Seleccionar cobrador</option>
+                {% for c in cobradores %}
+                <option value="{{ c.id }}" {% if c.id|stringformat:'s' == cobrador_seleccionado %}selected{% endif %}>
+                    {{ c.nombre }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-5">
+            <label for="fecha" class="form-label">Fecha del Cierre</label>
+            <input type="date" name="fecha" id="fecha" class="form-control" value="{{ fecha_seleccionada }}" required>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">Generar Cierre</button>
+        </div>
+    </div>
+
+    <!-- Botón para actualizar manualmente -->
+    <div class="mt-2">
+        <button type="button" id="btn-actualizar" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-sync"></i> Visualizar el Total de la fecha seleccionada, antes de generar el cierre/planilla.
+        </button>
+    </div>
+
+    <!-- Resultado -->
+    <div class="mt-4 p-3 bg-light border rounded" id="resultado-total" style="display: none;">
+        <p class="mb-1">
+            <strong>Total cobrado:</strong>
+            <span class="text-success fs-5">S/ <span id="total-monto">0.00</span></span>
+        </p>
+        <p class="text-warning" id="no-cobros" style="display: none;">
+            <i class="fas fa-exclamation-triangle"></i> No hay pagos registrados para esta fecha.
+        </p>
+    </div>
+</form>
+
+<!-- Instrucciones -->
+<div class="card mt-4 p-4">
+    <h5><i class="fas fa-info-circle text-primary"></i> Instrucciones</h5>
+    <ul>
+        <li>Puedes hacer cierres de cualquier fecha pasada o presente.</li>
+        <li>Si ya existe un cierre para esa fecha, se actualizará con el total actual.</li>
+        <li>El cobrador puede seguir haciendo depósitos después.</li>
+    </ul>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const cobradorSelect = document.getElementById('cobrador');
+    const fechaInput = document.getElementById('fecha');
+    const btnActualizar = document.getElementById('btn-actualizar');
+    const resultadoDiv = document.getElementById('resultado-total');
+    const totalSpan = document.getElementById('total-monto');
+    const noCobrosP = document.getElementById('no-cobros');
+
+    // Función para actualizar el total
+    function actualizarTotal() {
+        const cobradorId = cobradorSelect.value;
+        const fecha = fechaInput.value;
+
+        if (!cobradorId || !fecha) {
+            alert('Por favor, selecciona un cobrador y una fecha.');
+            return;
+        }
+
+        fetch('{% url "cobros:calcular_total_cobrado" %}?cobrador_id=' + cobradorId + '&fecha=' + fecha)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                totalSpan.textContent = parseFloat(data.total).toFixed(2);
+                noCobrosP.style.display = data.hay_cobros ? 'none' : 'block';
+                resultadoDiv.style.display = 'block';
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                alert('Error al calcular el total.');
+            });
+    }
+
+    // Eventos
+    btnActualizar.addEventListener('click', actualizarTotal);
+
+    // Opcional: actualizar cuando cambian los campos
+    cobradorSelect.addEventListener('change', () => {
+        if (fechaInput.value) {
+            actualizarTotal();
+        }
+    });
+    fechaInput.addEventListener('change', () => {
+        if (cobradorSelect.value) {
+            actualizarTotal();
+        }
+    });
+});
+</script>
+{% endblock %}

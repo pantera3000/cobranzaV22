@@ -1,7 +1,7 @@
 import calendar
 from django.shortcuts import render, get_object_or_404, redirect
 
-
+from datetime import datetime, time
 from datetime import date, time
 
 import datetime
@@ -64,6 +64,94 @@ import os
 from django.http import HttpResponseForbidden
 
 
+
+
+
+from datetime import datetime
+import pytz
+
+
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+from .models import PlanillaCierre, Cobro
+from django.utils import timezone
+from decimal import Decimal
+
+@login_required
+@require_POST
+def actualizar_planilla(request, pk):
+    planilla = get_object_or_404(PlanillaCierre, pk=pk)
+
+    # ✅ Solo staff o superusuario pueden actualizar
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "No tienes permiso para actualizar este cierre.")
+        return redirect('cobros:planilla_detalle', pk=planilla.pk)
+
+    # Zona horaria
+    lima_tz = pytz.timezone('America/Lima')
+    inicio_dia = lima_tz.localize(datetime.combine(planilla.fecha, time.min))
+    fin_dia = lima_tz.localize(datetime.combine(planilla.fecha, time.max))
+
+    # Calcular nuevo total cobrado ese día
+    nuevo_total = Cobro.objects.filter(
+        cobrador=planilla.cobrador,
+        fecha__gte=inicio_dia,
+        fecha__lte=fin_dia
+    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+    # Actualizar planilla
+    planilla.total_cobrado = nuevo_total
+    planilla.actualizado_en = timezone.now()  # ✅ Registrar cuándo se actualizó
+    planilla.save()  # Esto dispara actualizar_estado()
+
+    messages.success(request, f"Cierre actualizado. Nuevo total: S/ {nuevo_total:.2f}")
+
+    # ✅ Registrar en log (opcional)
+    registrar_log(
+        usuario=request.user,
+        cobrador=planilla.cobrador,
+        categoria='planilla',
+        accion='Actualizó cierre',
+        descripcion=f"Planilla ID: {pk}, Fecha: {planilla.fecha}, Total actualizado a S/ {nuevo_total:.2f}"
+    )
+
+    return redirect('cobros:planilla_detalle', pk=planilla.pk)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # @staff_member_required
 # def historial_metas(request):
 @login_required
@@ -82,7 +170,7 @@ def historial_metas(request):
         })
 
 
-    
+
     metas = MetaMensual.objects.all().order_by('-mes')
     data_metas = []
 
@@ -93,10 +181,10 @@ def historial_metas(request):
 
         # ✅ Corregido: usar datetime.datetime.combine y datetime.time.min/max
         fecha_inicio = timezone.make_aware(
-            datetime.datetime.combine(primer_dia, datetime.datetime.min.time())
+            datetime.combine(primer_dia, time.min)
         )
         fecha_fin = timezone.make_aware(
-            datetime.datetime.combine(ultimo_dia, datetime.datetime.max.time())
+            datetime.combine(ultimo_dia, time.max)
         )
 
         cobros_mes = Cobro.objects.filter(
@@ -137,7 +225,7 @@ def detalle_meta_mes(request, year, month):
             'mensaje': 'No tienes permiso para acceder a esta página.',
             'url_anterior': request.META.get('HTTP_REFERER')  # Página de donde vino
         })
-    
+
     try:
         # ✅ Convertir a entero
         year = int(year)
@@ -155,7 +243,7 @@ def detalle_meta_mes(request, year, month):
             }, status=400)
 
         # ✅ Fecha del mes
-        mes_fecha = datetime.datetime(year, month, 1).date()  # ✅ Corregido
+        mes_fecha = datetime(year, month, 1).date()  # ✅ Correcto
 
         # ✅ Intentar obtener la meta
         try:
@@ -166,10 +254,10 @@ def detalle_meta_mes(request, year, month):
         # ✅ Fechas de inicio y fin del mes
         _, last_day = calendar.monthrange(year, month)
         fecha_inicio = timezone.make_aware(
-            datetime.datetime(year, month, 1, 0, 0, 0)  # ✅ Corregido
+            datetime(year, month, 1, 0, 0, 0)  # ✅ Correcto
         )
         fecha_fin = timezone.make_aware(
-            datetime.datetime(year, month, last_day, 23, 59, 59)  # ✅ Corregido
+            datetime(year, month, last_day, 23, 59, 59)  # ✅ Correcto
         )
 
         # ✅ Cobros del mes agrupados por cobrador
@@ -258,7 +346,7 @@ def obtener_proximo_correlativo(request):
 @permission_required('clientes.view_logactividad', raise_exception=True)
 def log_actividad(request):
     logs = LogActividad.objects.all().select_related('usuario', 'cobrador').order_by('-fecha')
-    
+
     categoria = request.GET.get('categoria')
     if categoria:
         logs = logs.filter(categoria=categoria)
@@ -468,10 +556,13 @@ def cobro_list(request):
 
 
 # cobros/views.py
+from django.utils import timezone
+
 def cobro_export_excel(request):
     """
     Exporta los cobros a Excel, aplicando los mismos filtros que en la vista de listado.
     Incluye las columnas 'Referencia' y 'Notas'.
+    ✅ Ahora muestra las fechas en hora peruana (UTC-5)
     """
     # === 1. Obtener filtros (igual que en cobro_list) ===
     query = request.GET.get('q', '')
@@ -504,7 +595,7 @@ def cobro_export_excel(request):
         try:
             cobros = cobros.filter(cobrador_id=int(cobrador_id))
         except (ValueError, TypeError):
-            pass  # Si no es válido, ignora el filtro
+            pass
 
     # === 3. Crear libro de Excel ===
     workbook = Workbook()
@@ -513,26 +604,32 @@ def cobro_export_excel(request):
 
     # === 4. Encabezados (con Referencia y Notas) ===
     headers = [
-        'Documento', 
-        'Cliente', 
-        'Monto', 
-        'Cobrador', 
+        'Documento',
+        'Cliente',
+        'Monto',
+        'Cobrador',
         'Referencia',
         'Notas',
-        'Tipo de Pago',  # ✅ Nueva columna
-        'Fecha Pago', 
+        'Tipo de Pago',
+        'Fecha Pago',
+        'Día del Pago',      # ✅ Nueva columna (sin hora)
         'Fecha Registro'
+        'Día de Registro',    # ✅ Solo fecha (registro)
     ]
     for col_num, header in enumerate(headers, 1):
         cell = sheet.cell(row=1, column=col_num)
         cell.value = header
 
-    # === 5. Agregar datos con manejo de errores ===
+    # === 5. Agregar datos con conversión de zona horaria ===
     for cobro in cobros:
         try:
-            tipo_pago_display = cobro.get_tipo_pago_display() or ""  # ✅ Seguro
+            tipo_pago_display = cobro.get_tipo_pago_display() or ""
         except:
             tipo_pago_display = ""
+
+        # ✅ Convertir a hora local (Perú)
+        fecha_local = timezone.localtime(cobro.fecha)
+        creado_local = timezone.localtime(cobro.creado_en)
 
         sheet.append([
             f"{cobro.documento.get_tipo_display()} {cobro.documento.get_numero_completo()}",
@@ -541,24 +638,28 @@ def cobro_export_excel(request):
             cobro.cobrador.nombre,
             cobro.referencia or "",
             cobro.notas or "",
-            tipo_pago_display,  # ✅ Usar el valor seguro
-            cobro.fecha.strftime('%d/%m/%Y %H:%M'),
-            cobro.creado_en.strftime('%d/%m/%Y %H:%M'),
+            tipo_pago_display,
+            fecha_local.strftime('%d/%m/%Y %H:%M'),          # ✅ Hora local
+            fecha_local.strftime('%Y-%m-%d'),                # ✅ Solo fecha (ideal para filtro)
+            creado_local.strftime('%d/%m/%Y %H:%M'),         # ✅ Hora local
+            creado_local.strftime('%Y-%m-%d'),              # ✅ Solo fecha (registro)
         ])
 
     # === 6. Ajustar ancho de columnas ===
-    column_widths = [18, 30, 12, 20, 20, 30, 18, 18, 18]
+    column_widths = [18, 30, 12, 20, 20, 30, 18, 18, 14, 18, 14]  # Ajustado para nueva columna
     for i, width in enumerate(column_widths, 1):
         sheet.column_dimensions[chr(64 + i)].width = width
 
-    # === 7. Preparar respuesta HTTP ===
+
+    # === 7. Activar autofiltro en la primera fila ===
+    sheet.auto_filter.ref = sheet.dimensions  # Aplica filtro desde A1 hasta la última celda
+
+
+    # === 8. Preparar respuesta HTTP ===
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename=cobros.xlsx'
     workbook.save(response)
     return response
-
-
-
 
 
 
@@ -594,9 +695,9 @@ def cobro_delete(request, pk):
         cliente_nombre = documento.cliente.nombre
         documento_numero = f"{documento.get_tipo_display()} {documento.get_numero_completo()}"
         referencia = cobro.referencia or "Sin referencia"  # ✅ Obtenemos la referencia
-        
+
         cobro.delete()  # ← Aquí se actualiza monto_pagado (vía modelo)
-        
+
         # ✅ Registrar en el log
         registrar_log(
             usuario=request.user,
@@ -625,25 +726,29 @@ def pago_multiple(request):
     query = request.GET.get('q', '')
     page_number = request.GET.get('page', 1)
 
-    # Solo buscar si hay consulta
+    # Filtrar documentos con saldo pendiente
+    documentos = Documento.objects.filter(
+        monto_total__gt=F('monto_pagado') + F('monto_devolucion')
+    ).select_related('cliente').order_by('-fecha_emision')
+
+    # Aplicar búsqueda si existe
     if query:
-        documentos = Documento.objects.filter(
-            monto_total__gt=F('monto_pagado') + F('monto_devolucion')
-        ).filter(
+        documentos = documentos.filter(
             Q(cliente__nombre__icontains=query) |
             Q(numero__icontains=query) |
             Q(serie__icontains=query)
-        ).select_related('cliente').order_by('-fecha_emision')
+        )
     else:
-        # ✅ No cargar todos si no hay búsqueda
-        # Mostrar solo los 10 más recientes
-        documentos = Documento.objects.filter(
-            monto_total__gt=F('monto_pagado') + F('monto_devolucion')
-        ).select_related('cliente').order_by('-fecha_emision')[:10]
+        # Si no hay búsqueda, mostrar solo los últimos 10 (pero permitir paginación completa si se quiere)
+        # Opcional: puedes dejar todos, o limitar aquí con Paginator
+        pass  # Dejamos que el Paginator maneje todo
 
-    # ✅ Paginación
-    paginator = Paginator(documentos, 10)
+    # ✅ Aplicar paginación SIEMPRE
+    paginator = Paginator(documentos, 20)  # 10 por página
     documentos_page = paginator.get_page(page_number)
+
+    # ✅ Si no hay búsqueda, asegurarnos de que la página 1 muestre los más recientes
+    # Pero no cortamos el QuerySet antes de paginar
 
     cobradores = Cobrador.objects.all()
 
@@ -771,10 +876,10 @@ def buscar_por_referencia(request):
         pagos = Cobro.objects.filter(
             referencia__icontains=query
         ).select_related('documento', 'documento__cliente', 'cobrador').order_by('-fecha')
-        
+
         # ✅ Calcular total y conteo por referencia
         total_monto = sum(cobro.monto for cobro in pagos)
-        
+
         for cobro in pagos:
             ref = cobro.referencia
             if ref:
@@ -849,7 +954,7 @@ def historial_referencias(request):
 def exportar_por_referencia(request):
     """Exportar pagos por referencia a Excel"""
     query = request.GET.get('q', '').strip()
-    
+
     if not query:
         # Si no hay referencia, devolver vacío o error
         wb = Workbook()
@@ -905,7 +1010,7 @@ def exportar_por_referencia(request):
 def reporte_cartera(request):
 
     # ✅ Usuarios autorizados
-    usuarios_permitidos = ['adminaqp', 'juanc', 'maria']  # 👈 Cambia por los usernames que desees
+    usuarios_permitidos = ['adminaqp', 'juanc', 'CHRISTIAN']  # 👈 Cambia por los usernames que desees
 
     if not request.user.is_authenticated or request.user.username not in usuarios_permitidos:
         messages.warning(request, 'No tienes permiso para acceder al reporte de cartera.')
@@ -979,13 +1084,22 @@ def reporte_cartera(request):
         _, last_day = monthrange(mes.year, mes.month)
         ultimo_dia = mes.replace(day=last_day)
 
-        # ✅ Corregido: usar datetime.datetime.combine
+        # # ✅ Corregido: usar datetime.datetime.combine
+        # fecha_desde_dt = timezone.make_aware(
+        #     datetime.datetime.combine(primer_dia, datetime.datetime.min.time())
+        # )
+        # fecha_hasta_dt = timezone.make_aware(
+        #     datetime.datetime.combine(ultimo_dia, datetime.datetime.max.time())
+        # )
+        # ✅ Corrección: usa datetime.combine y time.min/max
         fecha_desde_dt = timezone.make_aware(
-            datetime.datetime.combine(primer_dia, datetime.datetime.min.time())
+            datetime.combine(primer_dia, time.min)
         )
         fecha_hasta_dt = timezone.make_aware(
-            datetime.datetime.combine(ultimo_dia, datetime.datetime.max.time())
+            datetime.combine(ultimo_dia, time.max)
         )
+
+
 
         cobros_mes = Cobro.objects.filter(
             fecha__gte=fecha_desde_dt,
@@ -1091,13 +1205,116 @@ from .models import Cobro, PlanillaCierre, Cobrador, DepositoParcial
 
 from django.contrib.admin.views.decorators import staff_member_required
 
+# @login_required
+# def cerrar_planilla_del_dia(request):
+#     # ✅ Obtener fecha actual en hora local (Perú)
+#     hoy = timezone.localtime(timezone.now()).date()
+
+#     # ✅ Si es superusuario
+#     if request.user.is_superuser or request.user.is_staff:
+#         cobradores = Cobrador.objects.all()
+
+#         if request.method == 'POST':
+#             cobrador_id = request.POST.get('cobrador')
+#             if not cobrador_id:
+#                 messages.error(request, "Debes seleccionar un cobrador.")
+#                 return redirect('cobros:cerrar_planilla_del_dia')
+
+#             try:
+#                 cobrador = Cobrador.objects.get(pk=cobrador_id)
+#             except Cobrador.DoesNotExist:
+#                 messages.error(request, "Cobrador no válido.")
+#                 return redirect('cobros:cerrar_planilla_del_dia')
+
+#             # ✅ Calcular total cobrado del día (en hora local)
+#             inicio_hoy = timezone.make_aware(
+#                 datetime.datetime.combine(hoy, datetime.time.min)
+#             )
+#             fin_hoy = timezone.make_aware(
+#                 datetime.datetime.combine(hoy, datetime.time.max)
+#             )
+
+#             total_cobrado = Cobro.objects.filter(
+#                 cobrador=cobrador,
+#                 fecha__gte=inicio_hoy,
+#                 fecha__lte=fin_hoy
+#             ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+#             # Crear o obtener planilla
+#             planilla, created = PlanillaCierre.objects.get_or_create(
+#                 cobrador=cobrador,
+#                 fecha=hoy,
+#                 defaults={
+#                     'total_cobrado': total_cobrado,
+#                     'notas': f'Cierre supervisado por admin - {request.user.username}'
+#                 }
+#             )
+
+#             # Si ya existe, actualizar el total
+#             if not created:
+#                 planilla.total_cobrado = total_cobrado
+#                 planilla.save()
+
+#             messages.success(request, f'Cierre generado para {cobrador.nombre}. Total: S/ {total_cobrado:.2f}')
+#             return redirect('cobros:planilla_detalle', pk=planilla.pk)
+
+#         return render(request, 'cobros/admin_seleccionar_cobrador.html', {
+#             'cobradores': cobradores
+#         })
+
+#     # ✅ Para cobradores normales
+#     try:
+#         cobrador = request.user.cobrador
+#     except:
+#         messages.error(request, "No estás asignado como cobrador.")
+#         return redirect('home')
+
+#     # ✅ Calcular total cobrado (en hora local)
+#     inicio_hoy = timezone.make_aware(
+#         datetime.datetime.combine(hoy, datetime.time.min)
+#     )
+#     fin_hoy = timezone.make_aware(
+#         datetime.datetime.combine(hoy, datetime.time.max)
+#     )
+
+#     total_cobrado = Cobro.objects.filter(
+#         cobrador=cobrador,
+#         fecha__gte=inicio_hoy,
+#         fecha__lte=fin_hoy
+#     ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+#     # Crear o obtener planilla
+#     planilla, created = PlanillaCierre.objects.get_or_create(
+#         cobrador=cobrador,
+#         fecha=hoy,
+#         defaults={
+#             'total_cobrado': total_cobrado,
+#             'notas': f'Cierre automático del día {hoy}'
+#         }
+#     )
+
+#     if not created:
+#         planilla.total_cobrado = total_cobrado
+#         planilla.save()
+
+#     messages.info(request, f'Total cobrado: S/ {total_cobrado:.2f}')
+#     return redirect('cobros:planilla_detalle', pk=planilla.pk)
+
+
 @login_required
 def cerrar_planilla_del_dia(request):
     # ✅ Obtener fecha actual en hora local (Perú)
     hoy = timezone.localtime(timezone.now()).date()
 
-    # ✅ Si es superusuario
-    if request.user.is_superuser or request.user.is_staff:
+    # ✅ Definir grupos y usuarios permitidos
+    grupos_permitidos = ['Puede Cerrar Planillas']  # Cambia al nombre real del grupo
+    usuarios_permitidos = ['maria_cobrador', 'juanc', 'adminaqp']  # Ajusta según tus usuarios
+
+    tiene_grupo = request.user.groups.filter(name__in=grupos_permitidos).exists()
+    es_usuario_especial = request.user.username in usuarios_permitidos
+
+    # ✅ Verificar si puede acceder como admin (cerrar para otros)
+    if request.user.is_superuser or request.user.is_staff or tiene_grupo or es_usuario_especial:
         cobradores = Cobrador.objects.all()
 
         if request.method == 'POST':
@@ -1113,11 +1330,12 @@ def cerrar_planilla_del_dia(request):
                 return redirect('cobros:cerrar_planilla_del_dia')
 
             # ✅ Calcular total cobrado del día (en hora local)
+            # ✅ Calcular total cobrado del día (en hora local)
             inicio_hoy = timezone.make_aware(
-                datetime.datetime.combine(hoy, datetime.time.min)
+                datetime.combine(hoy, time.min)  # ✅ Mismo formato
             )
             fin_hoy = timezone.make_aware(
-                datetime.datetime.combine(hoy, datetime.time.max)
+                datetime.combine(hoy, time.max)  # ✅ Consistente
             )
 
             total_cobrado = Cobro.objects.filter(
@@ -1132,7 +1350,7 @@ def cerrar_planilla_del_dia(request):
                 fecha=hoy,
                 defaults={
                     'total_cobrado': total_cobrado,
-                    'notas': f'Cierre supervisado por admin - {request.user.username}'
+                    'notas': f'Cierre supervisado por {request.user.username}'
                 }
             )
 
@@ -1142,13 +1360,23 @@ def cerrar_planilla_del_dia(request):
                 planilla.save()
 
             messages.success(request, f'Cierre generado para {cobrador.nombre}. Total: S/ {total_cobrado:.2f}')
+
+            # ✅ Registrar en el log
+            registrar_log(
+                usuario=request.user,
+                cobrador=cobrador,
+                categoria='planilla',
+                accion='Cerró planilla de otro',
+                descripcion=f"Cerró cierre del día para {cobrador.nombre}. Total: S/ {total_cobrado:.2f}"
+            )
+
             return redirect('cobros:planilla_detalle', pk=planilla.pk)
 
         return render(request, 'cobros/admin_seleccionar_cobrador.html', {
             'cobradores': cobradores
         })
 
-    # ✅ Para cobradores normales
+    # ✅ Para cobradores normales (cierran su propia planilla)
     try:
         cobrador = request.user.cobrador
     except:
@@ -1175,7 +1403,7 @@ def cerrar_planilla_del_dia(request):
         fecha=hoy,
         defaults={
             'total_cobrado': total_cobrado,
-            'notas': f'Cierre automático del día {hoy}'
+            'notas': f'Cierre automático del día {hoy} por {request.user.username}'
         }
     )
 
@@ -1184,7 +1412,18 @@ def cerrar_planilla_del_dia(request):
         planilla.save()
 
     messages.info(request, f'Total cobrado: S/ {total_cobrado:.2f}')
+
+    # ✅ Registrar en el log
+    registrar_log(
+        usuario=request.user,
+        cobrador=cobrador,
+        categoria='planilla',
+        accion='Cerró su planilla',
+        descripcion=f"Total: S/ {total_cobrado:.2f}"
+    )
+
     return redirect('cobros:planilla_detalle', pk=planilla.pk)
+
 
 
 
@@ -1195,12 +1434,41 @@ def planilla_detalle(request, pk):
     planilla = get_object_or_404(PlanillaCierre, pk=pk)
 
     # ✅ Verificar permisos
-    if not (request.user.is_superuser or request.user.is_staff or hasattr(request.user, 'cobrador') and request.user.cobrador == planilla.cobrador):
+    grupos_permitidos = ['Puede Ver Reporte de Cierres']
+    usuarios_permitidos = ['maria_cobrador', 'juanc', 'adminaqp', 'VALERIA']
+
+    tiene_grupo = request.user.groups.filter(name__in=grupos_permitidos).exists()
+    es_usuario_especial = request.user.username in usuarios_permitidos
+
+    if not (request.user.is_superuser or request.user.is_staff or
+            (hasattr(request.user, 'cobrador') and request.user.cobrador == planilla.cobrador) or
+            tiene_grupo or es_usuario_especial):
         messages.error(request, "No tienes permiso para ver esta planilla.")
-        return redirect('cobros:cobro_list')  # 👈 O a donde quieras redirigir
+        return redirect('cobros:cobro_list')
 
     # ✅ Obtener depósitos
     depositos = DepositoParcial.objects.filter(planilla=planilla).order_by('-fecha')
+
+    # ✅ Calcular rango de fecha para el día de la planilla (en hora local)
+    inicio_dia = timezone.make_aware(
+        datetime.combine(planilla.fecha, time.min)  # ✅ Correcto
+    )
+    fin_dia = timezone.make_aware(
+        datetime.combine(planilla.fecha, time.max)  # ✅ Correcto
+    )
+
+    # ✅ Obtener todos los cobros del cobrador en esa fecha
+    cobros_del_dia = Cobro.objects.filter(
+        cobrador=planilla.cobrador,
+        fecha__gte=inicio_dia,
+        fecha__lte=fin_dia
+    ).select_related('documento', 'documento__cliente').order_by('-fecha')
+
+
+
+    # ✅ Calcular total aquí, no en el template
+    total_cobros = cobros_del_dia.aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
 
     # ✅ Si es POST, procesar depósito
     if request.method == 'POST':
@@ -1233,13 +1501,13 @@ def planilla_detalle(request, pk):
                 # ✅ Registrar en el log de actividad
                 registrar_log(
                     usuario=request.user,
-                    cobrador=planilla.cobrador,  # El cobrador al que pertenece la planilla
+                    cobrador=planilla.cobrador,
                     categoria='deposito',
                     accion='Registró depósito',
                     descripcion=f"Monto: S/ {monto:.2f}, Planilla: {planilla.fecha}, Cobrador: {planilla.cobrador.nombre}, Notas: {notas or '-'}"
                 )
 
-                return redirect('cobros:planilla_detalle', pk=planilla.pk)  # Evita reenvío
+                return redirect('cobros:planilla_detalle', pk=planilla.pk)
         except Exception as e:
             messages.error(request, "Monto inválido.")
             return redirect('cobros:planilla_detalle', pk=planilla.pk)
@@ -1247,8 +1515,178 @@ def planilla_detalle(request, pk):
     # ✅ Renderizar siempre una respuesta
     return render(request, 'cobros/planilla_detalle.html', {
         'planilla': planilla,
-        'depositos': depositos
+        'depositos': depositos,
+        'cobros_del_dia': cobros_del_dia,  # ✅ Añadido: documentos cobrados
+        'total_cobros': total_cobros,  # ✅ Enviado al template
     })
+
+
+
+
+
+
+
+from datetime import datetime
+import pytz
+
+@login_required
+def cerrar_planilla_fecha_especifica(request):
+    # ✅ Verificar permisos (ajusta según tus necesidades)
+    grupos_permitidos = ['Puede Cerrar Planillas']
+    usuarios_permitidos = ['juanc', 'adminaqp', 'CHRISTIAN']
+
+    tiene_grupo = request.user.groups.filter(name__in=grupos_permitidos).exists()
+    es_usuario_especial = request.user.username in usuarios_permitidos
+
+    if not (request.user.is_staff or request.user.is_superuser or tiene_grupo or es_usuario_especial):
+        messages.error(request, "No tienes permiso para realizar esta acción.")
+        return redirect('home')
+
+    cobradores = Cobrador.objects.all().order_by('nombre')
+    fecha_seleccionada = None
+    cobrador_seleccionado = None
+    total_cobrado = 0
+    hay_cobros = False
+
+    if request.method == 'POST':
+        cobrador_id = request.POST.get('cobrador')
+        fecha_str = request.POST.get('fecha')
+
+        try:
+            cobrador = get_object_or_404(Cobrador, pk=cobrador_id)
+            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+
+            # ✅ Convertir a zona horaria local
+            lima_tz = pytz.timezone('America/Lima')
+            # inicio_dia = lima_tz.localize(datetime.combine(fecha, datetime.min.time()))
+            # fin_dia = lima_tz.localize(datetime.combine(fecha, datetime.max.time()))
+            inicio_dia = lima_tz.localize(datetime.combine(fecha, time.min))
+            fin_dia = lima_tz.localize(datetime.combine(fecha, time.max))
+
+            # ✅ Calcular total cobrado en esa fecha
+            total_cobrado_decimal = Cobro.objects.filter(
+                cobrador=cobrador,
+                fecha__gte=inicio_dia,
+                fecha__lte=fin_dia
+            ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+            total_cobrado = float(total_cobrado_decimal)
+            hay_cobros = Cobro.objects.filter(cobrador=cobrador, fecha__gte=inicio_dia, fecha__lte=fin_dia).exists()
+
+            # ✅ Crear o obtener planilla
+            planilla, created = PlanillaCierre.objects.get_or_create(
+                cobrador=cobrador,
+                fecha=fecha,
+                defaults={
+                    'total_cobrado': total_cobrado_decimal,
+                    'notas': f'Cierre manual - {request.user.username}'
+                }
+            )
+
+            if not created:
+                planilla.total_cobrado = total_cobrado_decimal
+                planilla.save()
+
+            messages.success(request, f'Cierre generado para {cobrador.nombre} - {fecha.strftime("%d/%m/%Y")}. Total: S/ {total_cobrado:.2f}')
+            return redirect('cobros:planilla_detalle', pk=planilla.pk)
+
+        except Exception as e:
+            messages.error(request, "Error al procesar el cierre. Verifica los datos ingresados.")
+
+    # Para mostrar valores en el formulario
+    fecha_seleccionada = request.POST.get('fecha', '')
+    cobrador_seleccionado = request.POST.get('cobrador', '')
+
+    return render(request, 'cobros/cerrar_planilla_fecha.html', {
+        'cobradores': cobradores,
+        'fecha_seleccionada': fecha_seleccionada,
+        'cobrador_seleccionado': cobrador_seleccionado,
+        'total_cobrado': total_cobrado,
+        'hay_cobros': hay_cobros,
+    })
+
+
+
+
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET
+
+@require_GET
+@login_required
+def calcular_total_cobrado(request):
+    # ✅ Verificar permisos (igual que antes)
+    grupos_permitidos = ['Puede Cerrar Planillas']
+    usuarios_permitidos = ['juanc', 'adminaqp', 'maria']
+
+    tiene_grupo = request.user.groups.filter(name__in=grupos_permitidos).exists()
+    es_usuario_especial = request.user.username in usuarios_permitidos
+
+    if not (request.user.is_staff or request.user.is_superuser or tiene_grupo or es_usuario_especial):
+        return JsonResponse({'error': 'No tienes permiso'}, status=403)
+
+    cobrador_id = request.GET.get('cobrador_id')
+    fecha_str = request.GET.get('fecha')
+
+    if not cobrador_id or not fecha_str:
+        return JsonResponse({'total': 0, 'hay_cobros': False})
+
+    try:
+        cobrador = get_object_or_404(Cobrador, pk=cobrador_id)
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+
+        lima_tz = pytz.timezone('America/Lima')
+        inicio_dia = lima_tz.localize(datetime.combine(fecha, time.min))
+        fin_dia = lima_tz.localize(datetime.combine(fecha, time.max))
+
+        total = Cobro.objects.filter(
+            cobrador=cobrador,
+            fecha__gte=inicio_dia,
+            fecha__lte=fin_dia
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+        hay_cobros = Cobro.objects.filter(cobrador=cobrador, fecha__gte=inicio_dia, fecha__lte=fin_dia).exists()
+
+        return JsonResponse({
+            'total': float(total),
+            'hay_cobros': hay_cobros
+        })
+    except Exception as e:
+        return JsonResponse({'total': 0, 'hay_cobros': False})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1298,8 +1736,56 @@ def mis_cierres(request):
     })
 
 
-@staff_member_required
+
+
+@login_required
+def mis_cierres_pdf(request):
+    try:
+        cobrador = request.user.cobrador
+        planillas = PlanillaCierre.objects.filter(cobrador=cobrador).order_by('-fecha')
+    except:
+        planillas = PlanillaCierre.objects.none()
+
+    # Calcular totales
+    total_cobrado = planillas.aggregate(total=Sum('total_cobrado'))['total'] or Decimal('0.00')
+    total_depositado = planillas.aggregate(total=Sum('total_depositado'))['total'] or Decimal('0.00')
+    saldo_pendiente = total_cobrado - total_depositado
+
+    # Renderizar HTML
+    html_string = render_to_string('cobros/mis_cierres_pdf.html', {
+        'planillas': planillas,
+        'cobrador': cobrador,
+        'total_cobrado': total_cobrado,
+        'total_depositado': total_depositado,
+        'saldo_pendiente': saldo_pendiente,
+        'request': request,
+    })
+
+    # Generar PDF
+    html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+    pdf = html.write_pdf()
+
+    # Respuesta HTTP
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="mis_cierres_{cobrador.nombre}_{timezone.now().date()}.pdf"'
+    return response
+
+
+
+@login_required  # Solo usuarios autenticados
 def admin_reporte_planillas(request):
+    # ✅ Verificar permisos personalizados
+    grupos_permitidos = ['Puede Ver Reporte de Cierres']  # Cambia al nombre real del grupo
+    usuarios_permitidos = ['maria_cobrador', 'juanc', 'adminaqp', 'VA7LERIA']  # Usuarios específicos
+
+    tiene_grupo = request.user.groups.filter(name__in=grupos_permitidos).exists()
+    es_usuario_especial = request.user.username in usuarios_permitidos
+
+    if not (request.user.is_staff or request.user.is_superuser or tiene_grupo or es_usuario_especial):
+        messages.error(request, "No tienes permiso para ver este reporte.")
+        return redirect('cobros:cobro_list')  # O a donde quieras redirigir
+
+    # Si tiene permiso, continuar con la lógica normal
     planillas = PlanillaCierre.objects.all().select_related('cobrador').order_by('-fecha')
 
     # Filtros
@@ -1308,10 +1794,18 @@ def admin_reporte_planillas(request):
     estado = request.GET.get('estado')
 
     if cobrador_id:
-        planillas = planillas.filter(cobrador_id=cobrador_id)
+        try:
+            planillas = planillas.filter(cobrador_id=int(cobrador_id))
+        except ValueError:
+            pass
+
     if fecha:
-        planillas = planillas.filter(fecha=fecha)
-    if estado:
+        try:
+            planillas = planillas.filter(fecha=fecha)
+        except ValueError:
+            pass
+
+    if estado and estado in ['pendiente', 'parcial', 'completado']:
         planillas = planillas.filter(estado=estado)
 
     cobradores = Cobrador.objects.all().order_by('nombre')
@@ -1323,9 +1817,9 @@ def admin_reporte_planillas(request):
 
     return render(request, 'cobros/admin_reporte_planillas.html', {
         'page_obj': page_obj,
-        'planillas': page_obj,  # ✅ Para mantener compatibilidad con el template
+        'planillas': page_obj,
         'cobradores': cobradores,
-        'filtros': request.GET
+        'filtros': request.GET,
     })
 
 
@@ -1333,29 +1827,75 @@ def admin_reporte_planillas(request):
 @staff_member_required
 def reabrir_planilla(request, pk):
     planilla = get_object_or_404(PlanillaCierre, pk=pk)
-    
+
     if planilla.estado != 'pendiente':
         # Eliminar depósitos parciales
         planilla.depositoparcial_set.all().delete()
-        
+
+        # ✅ Recalcular total_cobrado con los cobros actuales del día
+        inicio_dia = timezone.make_aware(datetime.combine(planilla.fecha, time.min))
+        fin_dia = timezone.make_aware(datetime.combine(planilla.fecha, time.max))
+
+        nuevo_total = Cobro.objects.filter(
+            cobrador=planilla.cobrador,
+            fecha__gte=inicio_dia,
+            fecha__lte=fin_dia
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
         # Reiniciar valores
+        planilla.total_cobrado = nuevo_total
         planilla.total_depositado = Decimal('0.00')
         planilla.estado = 'pendiente'
         planilla.save()
-        
+
         # ✅ Registrar en el log
         registrar_log(
             usuario=request.user,
             categoria='planilla',
             accion='Reabrió cierre',
-            descripcion=f"Planilla ID: {pk}, Fecha: {planilla.fecha}, Cobrador: {planilla.cobrador.nombre}"
+            descripcion=f"Planilla ID: {pk}, Fecha: {planilla.fecha}, Cobrador: {planilla.cobrador.nombre}, Total cobrado actualizado a S/ {nuevo_total:.2f}"
         )
-        
-        messages.success(request, f"Cierre del {planilla.fecha} reabierto. El cobrador puede corregirlo.")
+
+        messages.success(request, f"Cierre del {planilla.fecha} reabierto y total recalculado. El cobrador puede corregirlo.")
     else:
         messages.info(request, "El cierre ya está pendiente.")
-    
+
     return redirect('cobros:admin_reporte_planillas')
+
+
+
+
+
+
+
+
+
+
+@login_required
+@require_POST
+def eliminar_planilla(request, pk):
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "No tienes permiso.")
+        return redirect('cobros:admin_reporte_planillas')
+
+    planilla = get_object_or_404(PlanillaCierre, pk=pk)
+    nombre = planilla.cobrador.nombre
+    fecha = planilla.fecha
+
+    planilla.delete()
+
+    messages.success(request, f"Planilla de {nombre} ({fecha}) eliminada correctamente.")
+    return redirect('cobros:admin_reporte_planillas')
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1365,11 +1905,11 @@ def reabrir_planilla(request, pk):
 
 def planilla_detalle_pdf(request, pk):
     planilla = get_object_or_404(PlanillaCierre, pk=pk)
-    
+
     # Verificar permisos
     # ✅ Permitir a superusuario, staff o el cobrador asignado
-    if not (request.user.is_superuser or 
-            request.user.is_staff or 
+    if not (request.user.is_superuser or
+            request.user.is_staff or
             (hasattr(request.user, 'cobrador') and request.user.cobrador == planilla.cobrador)):
         messages.error(request, "No tienes permiso para ver este cierre.")
         return redirect('cobros:cobro_list')
@@ -1397,8 +1937,15 @@ def planilla_detalle_pdf(request, pk):
 
 
 def admin_reporte_planillas_pdf(request):
-    if not request.user.is_superuser:
-        messages.error(request, "No tienes permiso para ver este reporte.")
+    # ✅ Verificar permisos personalizados (igual que en admin_reporte_planillas)
+    grupos_permitidos = ['Puede Ver Reporte de Cierres']
+    usuarios_permitidos = ['maria_cobrador', 'juanc', 'adminaqp', 'VALERIA', 'CHRISTIAN']  # Ajusta según tus usuarios
+
+    tiene_grupo = request.user.groups.filter(name__in=grupos_permitidos).exists()
+    es_usuario_especial = request.user.username in usuarios_permitidos
+
+    if not (request.user.is_superuser or tiene_grupo or es_usuario_especial):
+        messages.error(request, "No tienes permiso para exportar este reporte.")
         return redirect('cobros:cobro_list')
 
     # === 1. Obtener filtros ===
@@ -1410,10 +1957,18 @@ def admin_reporte_planillas_pdf(request):
     planillas = PlanillaCierre.objects.all().select_related('cobrador').order_by('-fecha')
 
     if cobrador_id:
-        planillas = planillas.filter(cobrador_id=cobrador_id)
+        try:
+            planillas = planillas.filter(cobrador_id=int(cobrador_id))
+        except (ValueError, TypeError):
+            pass
+
     if fecha:
-        planillas = planillas.filter(fecha=fecha)
-    if estado:
+        try:
+            planillas = planillas.filter(fecha=fecha)
+        except ValueError:
+            pass
+
+    if estado and estado in ['pendiente', 'parcial', 'completado']:
         planillas = planillas.filter(estado=estado)
 
     cobradores = Cobrador.objects.all().order_by('nombre')
@@ -1440,3 +1995,34 @@ def admin_reporte_planillas_pdf(request):
     response = HttpResponse(pdf, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="reporte_planillas_cierre.pdf"'
     return response
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

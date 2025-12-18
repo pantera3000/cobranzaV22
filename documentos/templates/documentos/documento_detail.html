@@ -26,7 +26,7 @@
 
     <div class="d-flex gap-2 flex-wrap">
         <!-- ✅ Botón: Volver atrás -->
-        <button type="button" class="btn btn-outline-secondary" onclick="window.history.back();" 
+        <button type="button" class="btn btn-outline-secondary" onclick="window.history.back();"
                 title="Volver">
             <i class="fas fa-arrow-left"></i>
             <span class="d-none d-sm-inline ms-1">Volver</span>
@@ -93,9 +93,9 @@
             <!-- ✅ Cliente en el encabezado -->
             <!-- ✅ Cliente como badge destacado y clickeable -->
             <div class="mt-1">
-                <a href="{% url 'clientes:cliente_detail' documento.cliente.pk %}" 
+                <a href="{% url 'clientes:cliente_detail' documento.cliente.pk %}"
                 class="text-white text-decoration-none">
-                    <span class="badge bg-primary px-3 py-2 rounded-4" 
+                    <span class="badge bg-primary px-3 py-2 rounded-4"
                         style="font-size: 1rem; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         <i class="fas fa-user-tie me-2"></i>
                         {{ documento.cliente.nombre }}
@@ -106,11 +106,11 @@
         <!-- Estado en la derecha -->
         <!-- Estado en la derecha -->
         <span class="
-            badge 
-            fs-5 
-            px-4 
-            py-2 
-            rounded-pill 
+            badge
+            fs-5
+            px-4
+            py-2
+            rounded-pill
             fw-bold
             {% if documento.get_estado == 'pagado' %}
                 bg-success text-white
@@ -133,7 +133,7 @@
                 <p><strong>Número:</strong> {{ documento.serie }}-{{ documento.numero }}</p>
                 <p><strong>Cobrador:</strong>
                     {% if documento.cobrador %}
-                        <a href="{% url 'cobradores:cobrador_detail' documento.cobrador.pk %}" 
+                        <a href="{% url 'cobradores:cobrador_detail' documento.cobrador.pk %}"
                            class="text-decoration-none">
                             {{ documento.cobrador.nombre }}
                         </a>
@@ -154,9 +154,9 @@
 <!-- Barra de vencimiento -->
 <!-- Barra de vencimiento -->
 <!-- Barra de vencimiento -->
-<div class="progress mb-4" 
+<div class="progress mb-4"
      style="height: 45px; border-radius: 22px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
-    <div class="progress-bar 
+    <div class="progress-bar
         {% if documento.get_estado == 'pagado' %}
             bg-success  <!-- ✅ Verde para documentos pagados -->
         {% else %}
@@ -258,11 +258,11 @@
     <!-- Pestañas -->
     <ul class="nav nav-tabs nav-underline mb-4" id="historialTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active d-flex align-items-center gap-2 px-3 py-2" 
-                    id="cobros-tab" 
-                    data-bs-toggle="tab" 
-                    data-bs-target="#cobros" 
-                    type="button" 
+            <button class="nav-link active d-flex align-items-center gap-2 px-3 py-2"
+                    id="cobros-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#cobros"
+                    type="button"
                     role="tab">
                 <i class="fas fa-money-bill-wave text-success"></i>
                 <span class="text-success">Pagos</span>
@@ -272,11 +272,11 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link d-flex align-items-center gap-2 px-3 py-2" 
-                    id="devoluciones-tab" 
-                    data-bs-toggle="tab" 
-                    data-bs-target="#devoluciones" 
-                    type="button" 
+            <button class="nav-link d-flex align-items-center gap-2 px-3 py-2"
+                    id="devoluciones-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#devoluciones"
+                    type="button"
                     role="tab">
                 <i class="fas fa-undo text-danger"></i>
                 <span class="text-danger">Devoluciones</span>
@@ -312,7 +312,7 @@
                                 <tr>
                                     <td><strong>S/ {{ cobro.monto|floatformat:2 }}</strong></td>
                                     <td>
-                                        <a href="{% url 'cobradores:cobrador_detail' cobro.cobrador.pk %}" 
+                                        <a href="{% url 'cobradores:cobrador_detail' cobro.cobrador.pk %}"
                                            class="text-decoration-none">
                                             {{ cobro.cobrador.nombre }}
                                         </a>
@@ -335,11 +335,11 @@
                                         {% if cobro.referencia %}
                                             <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
                                             class="d-inline-flex align-items-center gap-2 text-decoration-none">
-                                                <span class="badge bg-primary text-white px-3 py-1" 
+                                                <span class="badge bg-primary text-white px-3 py-1"
                                                     style="font-size: 0.85em; border-radius: 20px; font-weight: 500;">
                                                     {{ cobro.referencia }}
                                                 </span>
-                                                <span class="badge bg-light text-primary border border-primary px-2 py-1" 
+                                                <span class="badge bg-light text-primary border border-primary px-2 py-1"
                                                     style="font-size: 0.75em; border-radius: 12px;">
                                                     {{ referencia_count|get_item:cobro.referencia }} doc
                                                 </span>
@@ -361,7 +361,7 @@
                                     <!-- ✅ Columna de acciones -->
                                     <!-- Columna de acciones -->
                                     <td>
-                                        {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'maria' or user.username == 'carlos' %}
+                                        {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'maria' or user.username == 'CHRISTIAN' %}
                                             <form method="post" action="{% url 'cobros:cobro_delete' cobro.pk %}" style="display: inline;">
                                                 {% csrf_token %}
                                                 <button type="submit" class="btn btn-sm btn-danger"
@@ -405,8 +405,8 @@
                             </div>
 
                             <p class="mb-1">
-                                <strong>Cobrador:</strong> 
-                                <a href="{% url 'cobradores:cobrador_detail' cobro.cobrador.pk %}" 
+                                <strong>Cobrador:</strong>
+                                <a href="{% url 'cobradores:cobrador_detail' cobro.cobrador.pk %}"
                                    class="text-decoration-none">
                                     {{ cobro.cobrador.nombre }}
                                 </a>
@@ -428,11 +428,11 @@
                                     <strong>Referencia:</strong>
                                     <a href="{% url 'cobros:buscar_por_referencia' %}?q={{ cobro.referencia|urlencode }}"
                                     class="d-inline-flex align-items-center gap-2 text-decoration-none">
-                                        <span class="badge bg-primary text-white px-3 py-1" 
+                                        <span class="badge bg-primary text-white px-3 py-1"
                                             style="font-size: 0.85em; border-radius: 20px; font-weight: 500;">
                                             {{ cobro.referencia }}
                                         </span>
-                                        <span class="badge bg-light text-primary border border-primary px-2 py-1" 
+                                        <span class="badge bg-light text-primary border border-primary px-2 py-1"
                                             style="font-size: 0.75em; border-radius: 12px;">
                                             {{ referencia_count|get_item:cobro.referencia }} doc
                                         </span>
@@ -441,7 +441,7 @@
                             {% endif %}
                             {% if cobro.notas %}
                             <p class="mb-1">
-                                <strong>Notas:</strong> 
+                                <strong>Notas:</strong>
                                 <small class="text-muted">{{ cobro.notas|truncatechars:60 }}</small>
                             </p>
                             {% endif %}
@@ -542,7 +542,7 @@
 
 
                                     <td>
-                                        <a href="{% url 'cobradores:cobrador_detail' dev.cobrador.pk %}" 
+                                        <a href="{% url 'cobradores:cobrador_detail' dev.cobrador.pk %}"
                                         class="text-decoration-none">
                                             {{ dev.cobrador.nombre }}
                                         </a>
@@ -583,8 +583,8 @@
                             </div>
 
                             <p class="mb-1">
-                                <strong>Cobrador:</strong> 
-                                <a href="{% url 'cobradores:cobrador_detail' dev.cobrador.pk %}" 
+                                <strong>Cobrador:</strong>
+                                <a href="{% url 'cobradores:cobrador_detail' dev.cobrador.pk %}"
                                 class="text-decoration-none">
                                     {{ dev.cobrador.nombre }}
                                 </a>
@@ -593,7 +593,7 @@
                             <!-- ✅ Notas (móvil) -->
                             {% if dev.notas %}
                                 <p class="mb-1">
-                                    <strong>Notas:</strong> 
+                                    <strong>Notas:</strong>
                                     <small class="text-muted">{{ dev.notas|truncatechars:60 }}</small>
                                 </p>
                             {% endif %}

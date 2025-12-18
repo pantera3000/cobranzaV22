@@ -3,13 +3,36 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>
-        <i class="fas fa-lock"></i> 
+        <i class="fas fa-lock"></i>
         Cierre de Planilla - {{ planilla.fecha|date:"d/m/Y" }}
         <br>
         <small class="text-muted">
             Creado: {{ planilla.creada_en|date:"d/m/Y H:i" }} (Lima)
         </small>
     </h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div>
         <a href="{% url 'cobros:mis_cierres' %}" class="btn btn-outline-info btn-sm">
             <i class="fas fa-history"></i> Mis Cierres
@@ -17,7 +40,7 @@
 
         <!-- Ejemplo: Dentro del bloque de botones de acción -->
         {% if request.user.is_staff %}
-            <a href="{% url 'cobros:admin_reporte_planillas' %}" 
+            <a href="{% url 'cobros:admin_reporte_planillas' %}"
             class="btn btn-outline-primary btn-sm">
                 <i class="fas fa-file-invoice"></i> Ir a reporte de todas las planillas
             </a>
@@ -52,13 +75,13 @@
             <div class="col-md-3"><strong>Total cobrado:</strong> S/ {{ planilla.total_cobrado|floatformat:2 }}</div>
             <div class="col-md-3"><strong>Total depositado:</strong> S/ {{ planilla.total_depositado|floatformat:2 }}</div>
             <div class="col-md-3">
-                <strong>Pendiente:</strong> 
+                <strong>Pendiente:</strong>
                 <span class="text-danger">S/ {{ planilla.saldo_pendiente|floatformat:2 }}</span>
             </div>
         </div>
         <div class="mt-2">
-            <strong>Estado:</strong> 
-            <span class="badge 
+            <strong>Estado:</strong>
+            <span class="badge
                 {% if planilla.estado == 'completado' %}bg-success
                 {% elif planilla.estado == 'parcial' %}bg-warning
                 {% else %}bg-danger
@@ -68,6 +91,141 @@
         </div>
     </div>
 </div>
+
+
+
+
+<!-- Documentos cobrados -->
+<div class="card mt-4">
+    <div class="card-header bg-info text-white">
+        <i class="fas fa-file-invoice"></i> Documentos Cobrados ({{ planilla.fecha|date:"d/m/Y" }})
+    </div>
+    <div class="card-body">
+        {% if cobros_del_dia %}
+            <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                    <thead>
+                        <tr>
+                            <th>Documento</th>
+                            <th>Cliente</th>
+                            <th>Monto Pagado</th>
+                            <th>Hora pago</th>
+                            <th>Registrado</th> <!-- ✅ Nueva columna -->
+                            <th>Tipo de Pago</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <!-- {% for cobro in cobros_del_dia %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'documentos:documento_detail' cobro.documento.pk %}"
+                                class="text-decoration-none">
+                                {{ cobro.documento.get_tipo_display }} {{ cobro.documento.get_numero_completo }}
+                            </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'clientes:cliente_detail' cobro.documento.cliente.pk %}"
+                                class="text-decoration-none">
+                                {{ cobro.documento.cliente.nombre }}
+                            </a>
+                            </td>
+                            <td>S/ {{ cobro.monto|floatformat:2 }}</td>
+                            <td>{{ cobro.fecha|time:"H:i" }}</td>
+                            <td>{{ cobro.get_tipo_pago_display|default:"—" }}</td>
+                        </tr>
+                        {% endfor %} -->
+
+                        {% for cobro in cobros_del_dia %}
+                        <tr {% if cobro.creado_en > planilla.creada_en and not planilla.actualizado_en or cobro.creado_en > planilla.actualizado_en %}class="table-warning fw-bold"{% endif %}>
+                            <td>
+                                <a href="{% url 'documentos:documento_detail' cobro.documento.pk %}"
+                                class="text-decoration-none">
+                                    {{ cobro.documento.get_tipo_display }} {{ cobro.documento.get_numero_completo }}
+                                </a>
+                                {% if cobro.fecha > planilla.creada_en %}
+                                    <i class="fas fa-exclamation-triangle text-warning ms-1"
+                                    title="Registrado después del cierre"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'clientes:cliente_detail' cobro.documento.cliente.pk %}"
+                                class="text-decoration-none">
+                                    {{ cobro.documento.cliente.nombre }}
+                                </a>
+                            </td>
+                            <td>S/ {{ cobro.monto|floatformat:2 }}</td>
+                            <td>
+                                {{ cobro.fecha|time:"H:i" }}
+                                {% if cobro.creado_en > planilla.creada_en %}
+                                    <br><small class="text-danger">+ post-cierre</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ cobro.creado_en|date:"d/m H:i" }}</td> <!-- ✅ Fecha + hora de registro -->
+                            <td>{{ cobro.get_tipo_pago_display|default:"—" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="fw-bold">
+                            <td colspan="2">Total:</td>
+                            <td>S/ {{ total_cobros|floatformat:2 }}</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">No se registraron pagos este día.</p>
+        {% endif %}
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+<!-- Alerta: Cobros no incluidos -->
+{% if planilla.tiene_cobros_pendientes %}
+<div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle"></i>
+    <strong>Hay cobros registrados después del cierre.</strong><br>
+    El total actual del día es mayor al registrado.
+
+    <!-- Solo staff/superuser ven el botón -->
+    {% if request.user.is_staff or request.user.is_superuser %}
+        <form method="post" action="{% url 'cobros:actualizar_planilla' planilla.pk %}" class="mt-2 d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-warning btn-sm">
+                <i class="fas fa-sync"></i> Actualizar Cierre
+            </button>
+        </form>
+    {% else %}
+        <small class="text-muted">Contacta a un supervisor para actualizarlo.</small>
+    {% endif %}
+</div>
+{% endif %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 <!-- Formulario de depósito -->
 <!-- Formulario de depósito -->
