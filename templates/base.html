@@ -26,6 +26,20 @@
             font-weight: bold;
             font-size: 1.2rem;
         }
+        
+        /* Reducir padding en móvil */
+        @media (max-width: 991px) {
+            .brand-row {
+                padding: 8px 12px;
+                font-size: 1rem;
+            }
+            .brand-row .logo-text i {
+                font-size: 1.2rem;
+            }
+            .time-info {
+                font-size: 0.85rem;
+            }
+        }
         .brand-row .logo-text {
             display: flex;
             align-items: center;
@@ -61,6 +75,219 @@
             padding: 20px 0;
             background-color: #343a40;
             color: white;
+        }
+
+        /* ============================================
+           MOBILE: FAB (Floating Action Button)
+           ============================================ */
+        .fab-container {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            z-index: 1000;
+            display: none;
+        }
+
+        @media (max-width: 991px) {
+            .fab-container {
+                display: block;
+            }
+        }
+
+        .fab-main {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            transition: all 0.3s ease;
+        }
+        
+        /* FAB se oculta al hacer scroll hacia abajo */
+        .fab-container.hidden {
+            transform: translateY(150px);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .fab-main:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .fab-main.active {
+            transform: rotate(45deg);
+        }
+
+        .fab-actions {
+            position: absolute;
+            bottom: 70px;
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .fab-actions.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .fab-action {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: #333;
+            font-size: 14px;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            transform: translateX(100px);
+        }
+
+        .fab-actions.active .fab-action {
+            transform: translateX(0);
+        }
+
+        .fab-action:nth-child(1) { transition-delay: 0.05s; }
+        .fab-action:nth-child(2) { transition-delay: 0.1s; }
+        .fab-action:nth-child(3) { transition-delay: 0.15s; }
+        .fab-action:nth-child(4) { transition-delay: 0.2s; }
+        .fab-action:nth-child(5) { transition-delay: 0.25s; }
+
+        .fab-action:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        .fab-action i {
+            font-size: 18px;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* ============================================
+           MOBILE: Bottom Navigation Bar
+           ============================================ */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 999;
+        }
+
+        @media (max-width: 991px) {
+            .bottom-nav {
+                display: flex;
+            }
+            body {
+                padding-bottom: 60px;
+            }
+        }
+
+        .bottom-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 5px;
+            text-decoration: none;
+            color: #6c757d;
+            font-size: 11px;
+            transition: all 0.2s ease;
+        }
+
+        .bottom-nav-item i {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .bottom-nav-item.active {
+            color: #007bff;
+        }
+
+        .bottom-nav-item:hover {
+            background: #f8f9fa;
+        }
+
+        /* ============================================
+           DESKTOP: Quick Actions Panel
+           ============================================ */
+        .quick-actions {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 998;
+        }
+
+        @media (min-width: 992px) {
+            .quick-actions {
+                display: flex;
+            }
+        }
+
+        .quick-action {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #007bff;
+            color: #007bff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .quick-action:hover {
+            background: #007bff;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .quick-action .tooltip-text {
+            position: absolute;
+            right: 60px;
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .quick-action:hover .tooltip-text {
+            opacity: 1;
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -435,6 +662,156 @@
             <i class="fas fa-plus"></i> Crear Meta
         </a>
     </div>
+{% endif %}
+
+<!-- ============================================
+     MOBILE: FAB (Floating Action Button)
+     ============================================ -->
+{% if user.is_authenticated %}
+<div class="fab-container">
+    <div class="fab-actions" id="fabActions">
+        <a href="{% url 'cobros:cobro_create' %}" class="fab-action">
+            <i class="fas fa-money-bill-wave"></i>
+            <span>Registrar Pago</span>
+        </a>
+        <a href="{% url 'documentos:documento_create' %}" class="fab-action">
+            <i class="fas fa-file-invoice"></i>
+            <span>Nuevo Documento</span>
+        </a>
+        <a href="{% url 'clientes:cliente_list' %}" class="fab-action">
+            <i class="fas fa-search"></i>
+            <span>Buscar Cliente</span>
+        </a>
+        <a href="{% url 'documentos:reporte_documentos_pendientes' %}" class="fab-action">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>Docs Pendientes</span>
+        </a>
+        <a href="{% url 'cobros:cerrar_planilla_del_dia' %}" class="fab-action">
+            <i class="fas fa-clipboard-check"></i>
+            <span>Cerrar Planilla</span>
+        </a>
+    </div>
+    <button class="fab-main" id="fabMain">
+        <i class="fas fa-plus"></i>
+    </button>
+</div>
+
+<!-- ============================================
+     MOBILE: Bottom Navigation Bar
+     ============================================ -->
+<nav class="bottom-nav">
+    <a href="{% url 'clientes:cliente_list' %}" class="bottom-nav-item">
+        <i class="fas fa-home"></i>
+        <span>Inicio</span>
+    </a>
+    <a href="{% url 'documentos:documento_list' %}" class="bottom-nav-item">
+        <i class="fas fa-file-invoice"></i>
+        <span>Documentos</span>
+    </a>
+    <a href="{% url 'cobros:cobro_list' %}" class="bottom-nav-item">
+        <i class="fas fa-money-bill-wave"></i>
+        <span>Pagos</span>
+    </a>
+    <a href="{% url 'clientes:cliente_list' %}" class="bottom-nav-item">
+        <i class="fas fa-users"></i>
+        <span>Clientes</span>
+    </a>
+    <a href="#" class="bottom-nav-item" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <i class="fas fa-bars"></i>
+        <span>Más</span>
+    </a>
+</nav>
+
+<!-- ============================================
+     DESKTOP: Quick Actions Panel
+     ============================================ -->
+<div class="quick-actions">
+    <a href="{% url 'cobros:cobro_create' %}" class="quick-action" title="Registrar Pago">
+        <i class="fas fa-money-bill-wave"></i>
+        <span class="tooltip-text">Registrar Pago</span>
+    </a>
+    <a href="{% url 'documentos:documento_create' %}" class="quick-action" title="Nuevo Documento">
+        <i class="fas fa-file-invoice"></i>
+        <span class="tooltip-text">Nuevo Documento</span>
+    </a>
+    <a href="{% url 'documentos:reporte_documentos_pendientes' %}" class="quick-action" title="Docs Pendientes">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span class="tooltip-text">Docs Pendientes</span>
+    </a>
+    <a href="{% url 'cobros:cerrar_planilla_del_dia' %}" class="quick-action" title="Cerrar Planilla">
+        <i class="fas fa-clipboard-check"></i>
+        <span class="tooltip-text">Cerrar Planilla</span>
+    </a>
+</div>
+
+<!-- JavaScript para interactividad -->
+<script>
+// FAB Toggle
+const fabMain = document.getElementById('fabMain');
+const fabActions = document.getElementById('fabActions');
+const fabContainer = document.querySelector('.fab-container');
+
+if (fabMain) {
+    fabMain.addEventListener('click', () => {
+        fabMain.classList.toggle('active');
+        fabActions.classList.toggle('active');
+    });
+
+    // Cerrar al hacer clic fuera
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.fab-container')) {
+            fabMain.classList.remove('active');
+            fabActions.classList.remove('active');
+        }
+    });
+    
+    // Ocultar FAB al hacer scroll hacia abajo
+    let lastScrollTop = 0;
+    window.addEventListener('scroll', () => {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        
+        if (scrollTop > lastScrollTop && scrollTop > 100) {
+            // Scroll hacia abajo
+            fabContainer.classList.add('hidden');
+            fabMain.classList.remove('active');
+            fabActions.classList.remove('active');
+        } else {
+            // Scroll hacia arriba
+            fabContainer.classList.remove('hidden');
+        }
+        
+        lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+    }, false);
+    
+    // Ocultar FAB cuando el usuario escribe en un formulario
+    const allInputs = document.querySelectorAll('input, textarea, select');
+    allInputs.forEach(input => {
+        input.addEventListener('focus', () => {
+            fabContainer.classList.add('hidden');
+            fabMain.classList.remove('active');
+            fabActions.classList.remove('active');
+        });
+        
+        input.addEventListener('blur', () => {
+            // Esperar un poco antes de mostrar de nuevo
+            setTimeout(() => {
+                if (!document.activeElement.matches('input, textarea, select')) {
+                    fabContainer.classList.remove('hidden');
+                }
+            }, 300);
+        });
+    });
+}
+
+// Bottom Nav Active State
+const currentPath = window.location.pathname;
+document.querySelectorAll('.bottom-nav-item').forEach(item => {
+    const href = item.getAttribute('href');
+    if (href && href !== '#' && currentPath.includes(href.split('/')[1])) {
+        item.classList.add('active');
+    }
+});
+</script>
 {% endif %}
 </body>
 </html>
