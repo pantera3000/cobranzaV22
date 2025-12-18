@@ -10,8 +10,12 @@
         .info { margin: 20px 0; }
         .info div { margin: 5px 0; }
         table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+        th, td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 11px; }
         th { background-color: #f0f0f0; }
+        /* Evitar que las filas se rompan entre páginas */
+        tr { page-break-inside: avoid; }
+        thead { display: table-header-group; }
+        tfoot { display: table-footer-group; }
         .footer { margin-top: 30px; font-size: 12px; text-align: center; color: #555; }
         .badge { padding: 3px 8px; border-radius: 12px; font-size: 12px; }
         .bg-success { background-color: #d4edda; color: #155724; }
