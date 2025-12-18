@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+/staticfiles/
+/media/
+
+# Entorno virtual
+.env
+.venv
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backups y copias
+*.backup
+db - copia.sqlite3
+requirements - copia.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archivos de prueba
+*.txt.bak
