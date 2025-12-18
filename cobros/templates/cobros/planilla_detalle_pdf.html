@@ -37,6 +37,43 @@
         </div>
     </div>
 
+    <h3>Documentos Cobrados ({{ planilla.fecha|date:"d/m/Y" }})</h3>
+    {% if cobros_del_dia %}
+    <table>
+        <thead>
+            <tr>
+                <th>Documento</th>
+                <th>Cliente</th>
+                <th>Monto Pagado</th>
+                <th>Hora Pago</th>
+                <th>Registrado</th>
+                <th>Tipo de Pago</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cobro in cobros_del_dia %}
+            <tr>
+                <td>{{ cobro.documento.get_tipo_display }} {{ cobro.documento.get_numero_completo }}</td>
+                <td>{{ cobro.documento.cliente.nombre }}</td>
+                <td>S/ {{ cobro.monto|floatformat:2 }}</td>
+                <td>{{ cobro.fecha|time:"H:i" }}</td>
+                <td>{{ cobro.creado_en|date:"d/m H:i" }}</td>
+                <td>{{ cobro.get_tipo_pago_display|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr style="font-weight: bold;">
+                <td colspan="2">Total:</td>
+                <td>S/ {{ total_cobros|floatformat:2 }}</td>
+                <td colspan="3"></td>
+            </tr>
+        </tfoot>
+    </table>
+    {% else %}
+    <p>No se registraron pagos este día.</p>
+    {% endif %}
+
     <h3>Historial de Depósitos</h3>
     <table>
         <thead>
