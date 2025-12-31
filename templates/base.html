@@ -147,16 +147,17 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            background: white;
+            background: #2c3e50; /* Fondo Oscuro (Dark Navy) para contraste */
             padding: 12px 16px;
             border-radius: 25px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); /* Sombra más fuerte */
             text-decoration: none;
-            color: #333;
+            color: #fff; /* Texto blanco */
             font-size: 14px;
             white-space: nowrap;
             transition: all 0.2s ease;
             transform: translateX(100px);
+            border: 1px solid rgba(255,255,255,0.1); /* Borde sutil */
         }
 
         .fab-actions.active .fab-action {
@@ -168,11 +169,18 @@
         .fab-action:nth-child(3) { transition-delay: 0.15s; }
         .fab-action:nth-child(4) { transition-delay: 0.2s; }
         .fab-action:nth-child(5) { transition-delay: 0.25s; }
+        .fab-action:nth-child(6) { transition-delay: 0.3s; }
+        .fab-action:nth-child(7) { transition-delay: 0.35s; }
+        .fab-action:nth-child(8) { transition-delay: 0.4s; }
 
         .fab-action:hover {
             transform: translateX(-5px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+            background: #34495e; /* Un poco más claro al hover */
+            color: #fff;
         }
+
+
 
         .fab-action i {
             font-size: 18px;
@@ -214,10 +222,13 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: white;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-            display: none;
-            z-index: 999;
+            background: #2c3e50; /* Dark Navy Background */
+            display: none; /* Default hidden on desktop */
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.2); /* Deep shadow */
+            z-index: 1040;
+            border-top: 1px solid rgba(255,255,255,0.05);
         }
 
         @media (max-width: 991px) {
@@ -237,22 +248,29 @@
             justify-content: center;
             padding: 10px 5px;
             text-decoration: none;
-            color: #6c757d;
+            color: rgba(255,255,255,0.5); /* Inactive: muted white */
             font-size: 11px;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
         }
 
         .bottom-nav-item i {
             font-size: 20px;
             margin-bottom: 4px;
+            transition: transform 0.2s ease;
         }
 
         .bottom-nav-item.active {
-            color: #007bff;
+            color: #0dcaf0; /* Cyan active color */
+            text-shadow: 0 0 10px rgba(13, 202, 240, 0.5); /* Glow effect */
+        }
+        
+        .bottom-nav-item.active i {
+            transform: translateY(-2px);
         }
 
         .bottom-nav-item:hover {
-            background: #f8f9fa;
+            color: rgba(255,255,255,0.8);
+            background: rgba(255,255,255,0.05);
         }
 
         /* ============================================
@@ -337,24 +355,31 @@
             pointer-events: all;
         }
 
+        /* ============================================
+           MOBILE: Sidebar Menu (Lateral)
+           ============================================ */
         .drawer-menu {
             position: fixed;
+            top: 0;
             bottom: 0;
             left: 0;
-            right: 0;
+            width: 280px;
+            max-width: 85vw;
             background: white;
-            border-radius: 20px 20px 0 0;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+            border-radius: 0 20px 20px 0;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.2);
             z-index: 1051;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-            max-height: 80vh;
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            max-height: 100vh;
             overflow-y: auto;
-            padding-bottom: 70px; /* Espacio para bottom nav */
+            padding-bottom: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .drawer-menu.active {
-            transform: translateY(0);
+            transform: translateX(0);
         }
 
         .drawer-header {
@@ -1143,103 +1168,113 @@
         </button>
     </div>
     <div class="drawer-content">
-        <!-- Sección: Principal -->
-        <div class="drawer-section">
-            <div class="drawer-section-title">Principal</div>
-            <a href="{% url 'clientes:cliente_list' %}" class="drawer-item">
-                <i class="fas fa-home"></i>
-                <span>Inicio</span>
-            </a>
-            <a href="{% url 'clientes:cliente_list' %}" class="drawer-item">
-                <i class="fas fa-users"></i>
+        <!-- 1. Inicio -->
+        <a href="{% url 'clientes:cliente_list' %}" class="drawer-item">
+            <i class="fas fa-home"></i> <span>Inicio</span>
+        </a>
+
+        <!-- 2. Clientes -->
+        <div class="drawer-accordion-item">
+            <div class="drawer-accordion-header" onclick="toggleDrawerAccordion(this)">
+                <i class="fas fa-users menu-icon"></i>
                 <span>Clientes</span>
-            </a>
-            <a href="{% url 'documentos:documento_list' %}" class="drawer-item">
-                <i class="fas fa-file-invoice"></i>
-                <span>Documentos</span>
-            </a>
-            <a href="{% url 'cobros:cobro_list' %}" class="drawer-item">
-                <i class="fas fa-money-bill-wave"></i>
-                <span>Pagos</span>
-            </a>
-            <a href="{% url 'devoluciones:devolucion_list' %}" class="drawer-item">
-                <i class="fas fa-undo"></i>
-                <span>Devoluciones</span>
-            </a>
-        </div>
-
-        <!-- Sección: Acciones Rápidas -->
-        <div class="drawer-section">
-            <div class="drawer-section-title">Acciones Rápidas</div>
-            <a href="{% url 'cobros:cobro_create' %}" class="drawer-item">
-                <i class="fas fa-plus-circle"></i>
-                <span>Registrar Pago</span>
-            </a>
-            <a href="{% url 'documentos:documento_create' %}" class="drawer-item">
-                <i class="fas fa-plus-circle"></i>
-                <span>Nuevo Documento</span>
-            </a>
-            <a href="{% url 'clientes:cliente_create' %}" class="drawer-item">
-                <i class="fas fa-user-plus"></i>
-                <span>Nuevo Cliente</span>
-            </a>
-        </div>
-
-        <!-- Sección: Reportes (solo para usuarios autorizados) -->
-        {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA,CHRISTIAN' %}
-        <div class="drawer-section">
-            <div class="drawer-section-title">Reportes</div>
-            <a href="{% url 'reportes:totales' %}" class="drawer-item">
-                <i class="fas fa-calculator"></i>
-                <span>Totales del Sistema</span>
-            </a>
-            <a href="{% url 'reportes:clientes_vencidos' %}" class="drawer-item">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>Clientes Vencidos</span>
-            </a>
-            <a href="{% url 'documentos:reporte_documentos_pendientes' %}" class="drawer-item">
-                <i class="fas fa-file-alt"></i>
-                <span>Documentos Pendientes</span>
-            </a>
-        </div>
-        {% endif %}
-
-        <!-- Sección: Cobradores (solo para usuarios autorizados) -->
-        {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA,CHRISTIAN' %}
-        <div class="drawer-section">
-            <div class="drawer-section-title">Cobradores</div>
-            <a href="{% url 'cobradores:cobrador_list' %}" class="drawer-item">
-                <i class="fas fa-user-shield"></i>
-                <span>Listar Cobradores</span>
-            </a>
-            <a href="{% url 'cobros:mis_cierres' %}" class="drawer-item">
-                <i class="fas fa-clipboard-list"></i>
-                <span>Mis Cierres</span>
-            </a>
-            <a href="{% url 'cobros:cerrar_planilla_del_dia' %}" class="drawer-item">
-                <i class="fas fa-clipboard-check"></i>
-                <span>Cerrar Planilla</span>
-            </a>
-        </div>
-        {% endif %}
-
-        <!-- Sección: Usuario -->
-        <div class="drawer-section">
-            <div class="drawer-section-title">Usuario</div>
-            <div class="drawer-item" style="pointer-events: none; opacity: 0.7;">
-                <i class="fas fa-user-circle"></i>
-                <span>{{ user.get_full_name|default:user.username }}</span>
+                <i class="fas fa-chevron-down chevron"></i>
             </div>
-            <form action="{% url 'logout' %}" method="post" style="margin: 0;">
+            <div class="drawer-accordion-body">
+                <a href="{% url 'clientes:cliente_list' %}" class="drawer-subitem">Listar Clientes</a>
+                <a href="{% url 'clientes:cliente_create' %}" class="drawer-subitem">Nuevo Cliente</a>
+                <a href="{% url 'clientes:cliente_export_excel' %}" class="drawer-subitem">Exportar Excel</a>
+            </div>
+        </div>
+
+        <!-- 3. Documentos -->
+        <div class="drawer-accordion-item">
+            <div class="drawer-accordion-header" onclick="toggleDrawerAccordion(this)">
+                <i class="fas fa-file-invoice menu-icon"></i>
+                <span>Documentos</span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </div>
+            <div class="drawer-accordion-body">
+                <a href="{% url 'documentos:documento_list' %}" class="drawer-subitem">Listar Documentos</a>
+                <a href="{% url 'documentos:documento_create' %}" class="drawer-subitem">Nuevo Documento</a>
+                {% if user.username == 'juanc' or user.username == 'adminaqp' or user.username == 'CHRISTIAN' %}
+                <a href="{% url 'documentos:reporte_documentos_pendientes' %}" class="drawer-subitem">Pendientes</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 4. Cobros -->
+        <div class="drawer-accordion-item">
+            <div class="drawer-accordion-header" onclick="toggleDrawerAccordion(this)">
+                <i class="fas fa-money-bill-wave menu-icon"></i>
+                <span>Pagos</span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </div>
+            <div class="drawer-accordion-body">
+                <a href="{% url 'cobros:cobro_list' %}" class="drawer-subitem">Historial Pagos</a>
+                <a href="{% url 'cobros:cobro_create' %}" class="drawer-subitem">Registrar Pago</a>
+                <a href="{% url 'cobros:cerrar_planilla_del_dia' %}" class="drawer-subitem">Cerrar Planilla</a>
+                <a href="{% url 'cobros:historial_cierres' %}" class="drawer-subitem">Historial Cierres</a>
+                <a href="{% url 'cobros:manejo_depositos' %}" class="drawer-subitem">Depósitos</a>
+            </div>
+        </div>
+
+        <!-- 5. Devoluciones -->
+        <a href="{% url 'devoluciones:devolucion_list' %}" class="drawer-item">
+            <i class="fas fa-undo"></i> <span>Devoluciones</span>
+        </a>
+
+        <!-- 6. Reparto (Conditional) -->
+        {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA,CHRISTIAN' %}
+        <div class="drawer-accordion-item">
+            <div class="drawer-accordion-header" onclick="toggleDrawerAccordion(this)">
+                <i class="fas fa-truck menu-icon"></i>
+                <span>Reparto</span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </div>
+            <div class="drawer-accordion-body">
+                <a href="{% url 'documentos:despacho_lista' %}" class="drawer-subitem">Mis Reportes</a>
+                <a href="{% url 'documentos:despacho_crear' %}" class="drawer-subitem">Nuevo Reporte</a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 7. Reportes (Conditional) -->
+        {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA' %}
+        <div class="drawer-accordion-item">
+            <div class="drawer-accordion-header" onclick="toggleDrawerAccordion(this)">
+                <i class="fas fa-chart-line menu-icon"></i>
+                <span>Reportes</span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </div>
+            <div class="drawer-accordion-body">
+                <a href="{% url 'reportes:totales' %}" class="drawer-subitem">Totales Sistema</a>
+                <a href="{% url 'reportes:clientes_vencidos' %}" class="drawer-subitem">Clientes Vencidos</a>
+                <a href="{% url 'reportes:pagos_parciales' %}" class="drawer-subitem">Pagos Parciales</a>
+                <a href="{% url 'reportes:documentos_proximos_vencer' %}" class="drawer-subitem">Próximos Vencer</a>
+                <a href="{% url 'cobros:reporte_cartera' %}" class="drawer-subitem">Cartera</a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 8. Configuración / Logout -->
+        <div style="margin-top: 20px; border-top: 1px solid #eee;">
+            {% if user.is_superuser %}
+            <a href="/admin/" class="drawer-item">
+                <i class="fas fa-cogs"></i> <span>Administración</span>
+            </a>
+            {% endif %}
+
+            <form action="{% url 'logout' %}" method="post" class="d-block w-100">
                 {% csrf_token %}
-                <button type="submit" class="drawer-item" style="width: 100%; border: none; background: none; text-align: left; cursor: pointer;">
-                    <i class="fas fa-sign-out-alt" style="color: #dc3545;"></i>
-                    <span style="color: #dc3545;">Cerrar Sesión</span>
+                <button type="submit" class="drawer-item w-100 text-start text-danger" style="background:none; border:none;">
+                    <i class="fas fa-sign-out-alt"></i> <span>Cerrar Sesión</span>
                 </button>
             </form>
         </div>
     </div>
-</div>
+
+
 
 <!-- ============================================
      DESKTOP: Quick Actions Panel
@@ -1266,6 +1301,27 @@
 <!-- JavaScript para interactividad -->
 <script>
 // FAB Toggle
+function toggleDrawerAccordion(header) {
+    const body = header.nextElementSibling;
+    const isActive = header.classList.contains('active');
+    
+    // Cerrar otros acordeones
+    document.querySelectorAll('.drawer-accordion-header.active').forEach(h => {
+        if(h !== header) {
+            h.classList.remove('active');
+            h.nextElementSibling.style.maxHeight = null;
+        }
+    });
+
+    if (isActive) {
+        header.classList.remove('active');
+        body.style.maxHeight = null;
+    } else {
+        header.classList.add('active');
+        body.style.maxHeight = body.scrollHeight + "px";
+    }
+}
+
 const fabMain = document.getElementById('fabMain');
 const fabActions = document.getElementById('fabActions');
 const fabContainer = document.querySelector('.fab-container');
