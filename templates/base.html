@@ -634,39 +634,213 @@
                                     </ul>
                                 </li>
 
-                                <!-- Menú: Cobradores (solo para staff, admin, encargados) -->
-                                {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA,CHRISTIAN' %}
-                                    <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                            <i class="fas fa-user-shield"></i> Cobradores
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li><a class="dropdown-item" href="{% url 'cobradores:cobrador_list' %}"><i class="fas fa-list"></i> Listar Cobradores</a></li>
-                                            <li><a class="dropdown-item" href="{% url 'cobradores:cobrador_create' %}"><i class="fas fa-plus"></i> Nuevo Cobrador</a></li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li><a class="dropdown-item" href="{% url 'reportes:cobradores' %}"><i class="fas fa-chart-bar"></i> Reporte por Cobrador</a></li>
-                                            <li><a class="dropdown-item" href="{% url 'cobradores:cobrador_export_excel' %}"><i class="fas fa-file-excel text-success"></i> Exportar a Excel</a></li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li><a href="{% url 'cobros:mis_cierres' %}" class="btn btn-outline-info btn-sm d-block mx-3 mb-2">Mis Cierres</a></li>
-                                            {% if user.is_superuser or user.username in 'juanc,VALERIA,adminaqp,CHRISTIAN' %}
-                                                <li><a href="{% url 'cobros:cerrar_planilla_del_dia' %}" class="btn btn-warning btn-sm d-block mx-3 mb-2">Crear//Cerrar Planilla </a></li>
-                                                <!-- <li><a href="{% url 'cobros:admin_reporte_planillas' %}" class="btn btn-warning btn-sm d-block mx-3 mb-2">Reporte de Planillas</a></li> -->
+
+                                <!-- ✅ NUEVO FAB AGRUPADO (Reemplazo de Botones Flotantes) -->
+                                <!-- Este contenedor estará fijo en la esquina inferior derecha -->
+                                <style>
+                                    /* --- Estilos del FAB Agrupado --- */
+                                    .fab-grouped-container {
+                                        position: fixed;
+                                        bottom: 30px;
+                                        right: 30px;
+                                        z-index: 1050; /* Por encima de todo */
+                                        display: flex;
+                                        flex-direction: column-reverse; /* Se expande hacia arriba */
+                                        align-items: flex-end; /* Alineado a la derecha */
+                                    }
+
+                                    /* Botón Principal (+) */
+                                    .fab-main-btn {
+                                        width: 60px;
+                                        height: 60px;
+                                        border-radius: 50%;
+                                        background: linear-gradient(135deg, #0d6efd, #0dcaf0); /* Azul moderno */
+                                        color: white;
+                                        border: none;
+                                        box-shadow: 0 4px 15px rgba(13, 110, 253, 0.4);
+                                        font-size: 24px;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        cursor: pointer;
+                                        transition: transform 0.3s ease, box-shadow 0.3s ease;
+                                    }
+
+                                    .fab-main-btn:hover {
+                                        transform: scale(1.1) rotate(90deg);
+                                        box-shadow: 0 6px 20px rgba(13, 110, 253, 0.6);
+                                    }
+
+                                    /* Menú desplegable */
+                                    .fab-menu-grouped {
+                                        display: none; /* Oculto por defecto */
+                                        flex-direction: column;
+                                        gap: 15px;
+                                        margin-bottom: 20px;
+                                    }
+
+                                    .fab-menu-grouped.active {
+                                        display: flex;
+                                        animation: slideUpFade 0.3s ease-out forwards;
+                                    }
+
+                                    /* Grupo de opciones */
+                                    .fab-group {
+                                        background: white;
+                                        border-radius: 12px;
+                                        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+                                        padding: 10px;
+                                        min-width: 200px;
+                                        border-left: 5px solid #0d6efd; /* Color por defecto */
+                                        display: flex;
+                                        flex-direction: column;
+                                        gap: 5px;
+                                    }
+
+                                    .fab-group-title {
+                                        font-size: 0.75rem;
+                                        text-transform: uppercase;
+                                        color: #6c757d;
+                                        font-weight: bold;
+                                        padding: 0 8px 5px 8px;
+                                        border-bottom: 1px solid #eee;
+                                        margin-bottom: 5px;
+                                        letter-spacing: 0.5px;
+                                    }
+
+                                    /* Items del menú */
+                                    .fab-group-item {
+                                        display: flex;
+                                        align-items: center;
+                                        padding: 8px;
+                                        color: #333;
+                                        text-decoration: none;
+                                        border-radius: 8px;
+                                        transition: background 0.2s;
+                                        font-size: 0.9rem;
+                                    }
+
+                                    .fab-group-item:hover {
+                                        background: #f8f9fa;
+                                        color: #0d6efd;
+                                    }
+
+                                    .fab-group-item i {
+                                        width: 25px;
+                                        text-align: center;
+                                        margin-right: 10px;
+                                        color: #0d6efd;
+                                    }
+
+                                    /* Colores por grupo */
+                                    .fab-group.operaciones { border-left-color: #198754; } /* Verde */
+                                    .fab-group.operaciones .fab-group-item i { color: #198754; }
+                                    .fab-group.operaciones .fab-group-item:hover { color: #198754; background: #d1e7dd; }
+
+                                    .fab-group.consultas { border-left-color: #0dcaf0; } /* Cyan */
+                                    .fab-group.consultas .fab-group-item i { color: #0dcaf0; }
+                                    .fab-group.consultas .fab-group-item:hover { color: #0dcaf0; background: #cff4fc; }
+
+                                    .fab-group.gestion { border-left-color: #ffc107; } /* Amarillo */
+                                    .fab-group.gestion .fab-group-item i { color: #ffc107; }
+                                    .fab-group.gestion .fab-group-item:hover { color: #ffca2c; background: #fff3cd; }
+
+                                    .fab-group.admin { border-left-color: #dc3545; } /* Rojo */
+                                    .fab-group.admin .fab-group-item i { color: #dc3545; }
+                                    .fab-group.admin .fab-group-item:hover { color: #dc3545; background: #f8d7da; }
 
 
+                                    @keyframes slideUpFade {
+                                        from { opacity: 0; transform: translateY(20px); }
+                                        to { opacity: 1; transform: translateY(0); }
+                                    }
+                                </style>
 
+                                <div class="fab-grouped-container d-none d-md-flex"> <!-- Solo desktop -->
+                                    <button class="fab-main-btn" id="fabGroupedBtn" onclick="toggleFabGrouped()">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
 
+                                    <div class="fab-menu-grouped" id="fabGroupedMenu">
+                                        
+                                        <!-- GRUPO 3: GESTIÓN / CIERRE (Abajo del todo visualmente pero primero en HTML por flex-reverse) -->
+                                        {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA,CHRISTIAN' %}
+                                        <div class="fab-group gestion">
+                                            <span class="fab-group-title">Gestión</span>
+                                            <a href="{% url 'cobros:cerrar_planilla_del_dia' %}" class="fab-group-item">
+                                                <i class="fas fa-flag-checkered"></i> Cerrar Planilla
+                                            </a>
+                                        </div>
+                                        {% endif %}
 
+                                        <!-- GRUPO 2: CONSULTAS Y REPORTES -->
+                                        <div class="fab-group consultas">
+                                            <span class="fab-group-title">Consultas</span>
+                                            <a href="{% url 'clientes:cliente_list' %}" class="fab-group-item">
+                                                <i class="fas fa-search"></i> Buscar Cliente
+                                            </a>
+                                            <a href="{% url 'documentos:reporte_documentos_pendientes' %}" class="fab-group-item">
+                                                <i class="fas fa-clipboard-list"></i> Ver Pendientes
+                                            </a>
+                                            <!-- Validar permisos para opciones extra -->
+                                            {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA,CHRISTIAN' %}
+                                            <a href="{% url 'cobradores:cobrador_list' %}" class="fab-group-item">
+                                                <i class="fas fa-user-shield"></i> Listar Cobradores
+                                            </a>
+                                            <a href="{% url 'cobros:admin_reporte_planillas' %}" class="fab-group-item">
+                                                <i class="fas fa-table"></i> Reporte Planillas
+                                            </a>
                                             {% endif %}
-                                            {% if user.is_superuser or user.username in 'juanc,VALWERIA,adminaqp,CHRISTIAN' %}
-                                                <li><a href="{% url 'cobros:admin_reporte_planillas' %}" class="btn btn-warning btn-sm d-block mx-3 mb-2">Reporte de Planillas</a></li>
-                                                <li><a class="btn btn-warning btn-sm d-block mx-3 mb-2" href="{% url 'cobros:cerrar_planilla_fecha_especifica' %}">
-                                                    <i class="fas fa-calendar-check"></i> Cierre de Fecha Específica
-                                                </a></li>
+                                        </div>
 
-                                            {% endif %}
-                                        </ul>
-                                    </li>
-                                {% endif %}
+                                        <!-- GRUPO 1: OPERACIONES (Arriba del todo visualmente) -->
+                                        <div class="fab-group operaciones">
+                                            <span class="fab-group-title">Operaciones</span>
+                                            <a href="{% url 'cobros:cobro_create' %}" class="fab-group-item">
+                                                <i class="fas fa-money-bill-wave"></i> Registrar Pago
+                                            </a>
+                                            <a href="{% url 'documentos:documento_create' %}" class="fab-group-item">
+                                                <i class="fas fa-file-invoice"></i> Nuevo Documento
+                                            </a>
+                                            <a href="{% url 'clientes:cliente_create' %}" class="fab-group-item">
+                                                <i class="fas fa-user-plus"></i> Nuevo Cliente
+                                            </a>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                <script>
+                                    function toggleFabGrouped() {
+                                        const menu = document.getElementById('fabGroupedMenu');
+                                        const btnIcon = document.querySelector('#fabGroupedBtn i');
+                                        
+                                        menu.classList.toggle('active');
+                                        
+                                        // Rotar icono
+                                        if (menu.classList.contains('active')) {
+                                            btnIcon.classList.remove('fa-plus');
+                                            btnIcon.classList.add('fa-times');
+                                            btnIcon.style.transform = 'rotate(180deg)'; // Asegura rotación suave si no lo hace el CSS
+                                        } else {
+                                            btnIcon.classList.remove('fa-times');
+                                            btnIcon.classList.add('fa-plus');
+                                            btnIcon.style.transform = 'rotate(0deg)';
+                                        }
+                                    }
+
+                                    // Cerrar al hacer click fuera
+                                    document.addEventListener('click', function(event) {
+                                        const container = document.querySelector('.fab-grouped-container');
+                                        const menu = document.getElementById('fabGroupedMenu');
+                                        
+                                        // Si el click NO fue dentro del contenedor y el menú está activo
+                                        if (container && !container.contains(event.target) && menu.classList.contains('active')) {
+                                            toggleFabGrouped(); // Cerrar
+                                        }
+                                    });
+                                </script>
+                                <!-- FIN NUEVO FAB AGRUPADO -->
 
                                 <!-- Menú: Reportes (solo para staff, admin, encargados) -->
                                 <!-- Menú: Reportes (solo para staff, admin, encargados) -->

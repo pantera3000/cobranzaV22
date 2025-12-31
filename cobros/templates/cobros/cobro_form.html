@@ -40,9 +40,24 @@ DEBUG: documento_inicial_data = {{ documento_inicial_data }}
 </style>
 {% endblock %}
 
+
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-10">
+        <!-- ⚠️ ALERTA DE CONTEXTO GLOBAL -->
+        {% if not request.GET.cliente_id and not request.GET.documento_id %}
+        <div class="alert alert-warning alert-dismissible fade show shadow-sm border-warning" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-circle fa-2x me-3 text-warning"></i>
+                <div>
+                    <h6 class="alert-heading fw-bold mb-1">¡Atención!</h6>
+                    <p class="mb-0 small">Estás registrando un pago desde el menú principal. 
+                    <strong>Asegúrate de buscar y seleccionar el documento correcto</strong> antes de guardar.</p>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
         <div class="card">
             <div class="card-header bg-primary text-white">
                 <h4><i class="fas fa-money-bill-wave"></i> {{ title }}</h4>

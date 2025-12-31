@@ -7,6 +7,20 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-10">
+        <!-- ⚠️ ALERTA DE CONTEXTO GLOBAL -->
+        {% if not request.GET.cliente and not form.initial.cliente and not form.cliente.value %}
+        <div class="alert alert-warning alert-dismissible fade show shadow-sm border-warning" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-circle fa-2x me-3 text-warning"></i>
+                <div>
+                    <h6 class="alert-heading fw-bold mb-1">¡Atención!</h6>
+                    <p class="mb-0 small">Estás creando un documento nuevo. 
+                    <strong>Recuerda buscar y seleccionar al Cliente</strong> antes de guardar.</p>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
         <div class="card">
             <div class="card-header bg-primary text-white">
                 <h4><i class="fas fa-file-invoice"></i> {{ title }}</h4>
