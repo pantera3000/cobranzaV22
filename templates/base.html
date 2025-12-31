@@ -497,6 +497,40 @@
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease;
+            background-color: #f8f9fa; /* Fondo gris claro para submenú */
+        }
+
+        .drawer-subitem {
+            display: block; /* Ocupa todo el ancho */
+            padding: 12px 20px 12px 55px; /* Indentación visual */
+            color: #6c757d;
+            text-decoration: none;
+            font-size: 14px;
+            border-bottom: 1px solid #f1f3f5;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .drawer-subitem:before {
+            content: '';
+            position: absolute;
+            left: 35px;
+            top: 50%;
+            width: 6px;
+            height: 6px;
+            background-color: #cbd3da;
+            border-radius: 50%;
+            transform: translateY(-50%);
+        }
+
+        .drawer-subitem:hover {
+            background-color: #e9ecef;
+            color: #007bff;
+            padding-left: 60px; /* Slight movement effect */
+        }
+        
+        .drawer-subitem:hover:before {
+            background-color: #007bff;
         }
         
         .drawer-accordion-body.active {
@@ -1181,9 +1215,10 @@
                 <i class="fas fa-chevron-down chevron"></i>
             </div>
             <div class="drawer-accordion-body">
-                <a href="{% url 'clientes:cliente_list' %}" class="drawer-subitem">Listar Clientes</a>
-                <a href="{% url 'clientes:cliente_create' %}" class="drawer-subitem">Nuevo Cliente</a>
-                <a href="{% url 'clientes:cliente_export_excel' %}" class="drawer-subitem">Exportar Excel</a>
+                <a href="{% url 'clientes:cliente_list' %}" class="drawer-subitem"><i class="fas fa-list"></i> Listar Clientes</a>
+                <a href="{% url 'clientes:cliente_create' %}" class="drawer-subitem"><i class="fas fa-plus"></i> Nuevo Cliente</a>
+                <a href="{% url 'clientes:cliente_export_excel' %}" class="drawer-subitem"><i class="fas fa-file-excel text-success"></i> Exportar a Excel</a>
+                <a href="{% url 'clientes:cliente_export_csv' %}" class="drawer-subitem"><i class="fas fa-file-csv text-primary"></i> Exportar a CSV</a>
             </div>
         </div>
 
@@ -1195,15 +1230,14 @@
                 <i class="fas fa-chevron-down chevron"></i>
             </div>
             <div class="drawer-accordion-body">
-                <a href="{% url 'documentos:documento_list' %}" class="drawer-subitem">Listar Documentos</a>
-                <a href="{% url 'documentos:documento_create' %}" class="drawer-subitem">Nuevo Documento</a>
-                {% if user.username == 'juanc' or user.username == 'adminaqp' or user.username == 'CHRISTIAN' %}
-                <a href="{% url 'documentos:reporte_documentos_pendientes' %}" class="drawer-subitem">Pendientes</a>
-                {% endif %}
+                <a href="{% url 'documentos:documento_list' %}" class="drawer-subitem"><i class="fas fa-list"></i> Listar Documentos</a>
+                <a href="{% url 'documentos:documento_create' %}" class="drawer-subitem"><i class="fas fa-plus"></i> Nuevo Documento</a>
+                <a href="{% url 'documentos:documento_export_excel' %}" class="drawer-subitem"><i class="fas fa-file-excel text-success"></i> Exportar a Excel</a>
+                <a href="{% url 'documentos:documento_export_csv' %}" class="drawer-subitem"><i class="fas fa-file-csv text-primary"></i> Exportar a CSV</a>
             </div>
         </div>
 
-        <!-- 4. Cobros -->
+        <!-- 4. Pagos -->
         <div class="drawer-accordion-item">
             <div class="drawer-accordion-header" onclick="toggleDrawerAccordion(this)">
                 <i class="fas fa-money-bill-wave menu-icon"></i>
@@ -1211,32 +1245,25 @@
                 <i class="fas fa-chevron-down chevron"></i>
             </div>
             <div class="drawer-accordion-body">
-                <a href="{% url 'cobros:cobro_list' %}" class="drawer-subitem">Historial Pagos</a>
-                <a href="{% url 'cobros:cobro_create' %}" class="drawer-subitem">Registrar Pago</a>
-                <a href="{% url 'cobros:cerrar_planilla_del_dia' %}" class="drawer-subitem">Cerrar Planilla</a>
-                <a href="{% url 'cobros:historial_planillas' %}" class="drawer-subitem">Historial Cierres</a>
+                <a href="{% url 'cobros:cobro_list' %}" class="drawer-subitem"><i class="fas fa-list"></i> Listar Pagos</a>
+                <a href="{% url 'cobros:cobro_create' %}" class="drawer-subitem"><i class="fas fa-plus"></i> Registrar Pago</a>
+                <a href="{% url 'cobros:buscar_por_referencia' %}" class="drawer-subitem"><i class="fas fa-search"></i> Buscar por Referencia</a>
+                <a href="{% url 'cobros:pago_multiple' %}" class="drawer-subitem"><i class="fas fa-handshake"></i> Pago Múltiple</a>
             </div>
         </div>
 
         <!-- 5. Devoluciones -->
-        <a href="{% url 'devoluciones:devolucion_list' %}" class="drawer-item">
-            <i class="fas fa-undo"></i> <span>Devoluciones</span>
-        </a>
-
-        <!-- 6. Reparto (Conditional) -->
-        {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA,CHRISTIAN' %}
         <div class="drawer-accordion-item">
             <div class="drawer-accordion-header" onclick="toggleDrawerAccordion(this)">
-                <i class="fas fa-truck menu-icon"></i>
-                <span>Reparto</span>
+                <i class="fas fa-undo menu-icon"></i>
+                <span>Devoluciones</span>
                 <i class="fas fa-chevron-down chevron"></i>
             </div>
             <div class="drawer-accordion-body">
-                <a href="{% url 'documentos:despacho_lista' %}" class="drawer-subitem">Mis Reportes</a>
-                <a href="{% url 'documentos:despacho_crear' %}" class="drawer-subitem">Nuevo Reporte</a>
+                <a href="{% url 'devoluciones:devolucion_list' %}" class="drawer-subitem"><i class="fas fa-list"></i> Listar Devoluciones</a>
+                <a href="{% url 'devoluciones:devolucion_create' %}" class="drawer-subitem"><i class="fas fa-plus"></i> Registrar Devolución</a>
             </div>
         </div>
-        {% endif %}
 
         <!-- 7. Reportes (Conditional) -->
         {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA' %}
@@ -1247,29 +1274,70 @@
                 <i class="fas fa-chevron-down chevron"></i>
             </div>
             <div class="drawer-accordion-body">
-                <a href="{% url 'reportes:totales' %}" class="drawer-subitem">Totales Sistema</a>
-                <a href="{% url 'reportes:clientes_vencidos' %}" class="drawer-subitem">Clientes Vencidos</a>
-                <a href="{% url 'reportes:pagos_parciales' %}" class="drawer-subitem">Pagos Parciales</a>
-                <a href="{% url 'reportes:documentos_proximos_vencer' %}" class="drawer-subitem">Próximos Vencer</a>
-                <a href="{% url 'cobros:reporte_cartera' %}" class="drawer-subitem">Cartera</a>
+                <a href="{% url 'reportes:totales' %}" class="drawer-subitem"><i class="fas fa-calculator"></i> Totales del Sistema</a>
+                <a href="{% url 'reportes:clientes_vencidos' %}" class="drawer-subitem"><i class="fas fa-exclamation-triangle text-danger"></i> Clientes Vencidos</a>
+                <a href="{% url 'reportes:pagos_parciales' %}" class="drawer-subitem"><i class="fas fa-hand-holding-usd"></i> Pagos Parciales</a>
+                <a href="{% url 'reportes:documentos_proximos_vencer' %}" class="drawer-subitem"><i class="fas fa-calendar-alt text-warning"></i> Próximos a Vencer</a>
+                <a href="{% url 'reportes:top_clientes_pendientes' %}" class="drawer-subitem"><i class="fas fa-exclamation-circle text-danger"></i> Top 10 Deudores</a>
+                <a href="{% url 'cobros:historial_referencias' %}" class="drawer-subitem"><i class="fas fa-history"></i> Historial de Referencias</a>
+                <a href="{% url 'cobros:reporte_cartera' %}" class="drawer-subitem"><i class="fas fa-chart-pie"></i> Reporte de Cartera</a>
+                
+                {% if user.username == 'juanc' or user.username == 'adminaqp' or user.username == 'CHRISTIAN' %}
+                <a href="{% url 'documentos:reporte_documentos_pendientes' %}" class="drawer-subitem">
+                    <i class="fas fa-exclamation-triangle text-warning"></i> Documentos Pendientes
+                </a>
+                {% endif %}
+
+                <div style="border-top: 1px solid #eee; margin: 5px 0;"></div>
+                <div style="padding: 5px 20px; font-size: 11px; font-weight: bold; color: #999; text-transform: uppercase;">Metas de Cobranza</div>
+                <a href="{% url 'cobros:historial_metas' %}" class="drawer-subitem"><i class="fas fa-history"></i> Historial de Metas</a>
+                {% now "Y" as current_year %}
+                {% now "n" as current_month %}
+                <a href="{% url 'cobros:detalle_meta_mes' current_year current_month %}" class="drawer-subitem"><i class="fas fa-chart-bar"></i> Detalle por Cobrador</a>
             </div>
         </div>
         {% endif %}
 
-        <!-- 8. Configuración / Logout -->
-        <div style="margin-top: 20px; border-top: 1px solid #eee;">
-            {% if user.is_superuser %}
-            <a href="/admin/" class="drawer-item">
-                <i class="fas fa-cogs"></i> <span>Administración</span>
-            </a>
-            {% endif %}
+        <!-- 6. Reparto (Conditional) -->
+        {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALEeeeRIA,CHRISTIAN' %}
+        <div class="drawer-accordion-item">
+            <div class="drawer-accordion-header" onclick="toggleDrawerAccordion(this)">
+                <i class="fas fa-truck menu-icon"></i>
+                <span>Reparto</span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </div>
+            <div class="drawer-accordion-body">
+                <a href="{% url 'documentos:despacho_lista' %}" class="drawer-subitem"><i class="fas fa-list"></i> Mis Reportes</a>
+                <a href="{% url 'documentos:despacho_crear' %}" class="drawer-subitem"><i class="fas fa-plus"></i> Nuevo Reporte</a>
+            </div>
+        </div>
+        {% endif %}
 
-            <form action="{% url 'logout' %}" method="post" class="d-block w-100">
-                {% csrf_token %}
-                <button type="submit" class="drawer-item w-100 text-start text-danger" style="background:none; border:none;">
-                    <i class="fas fa-sign-out-alt"></i> <span>Cerrar Sesión</span>
-                </button>
-            </form>
+        <!-- 8. Usuario / Configuración -->
+        <div class="drawer-accordion-item">
+            <div class="drawer-accordion-header" onclick="toggleDrawerAccordion(this)">
+                <i class="fas fa-user-circle menu-icon"></i>
+                <span>{{ user.get_full_name|default:user.username }}</span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </div>
+            <div class="drawer-accordion-body">
+                {% if user.username == 'adminaqp' or user.username == 'juanc' or user.username == 'CHRISTIAN' %}
+                    <a href="{% url 'clientes:log_actividad' %}" class="drawer-subitem"><i class="fas fa-clipboard-list"></i> Auditoría</a>
+                    <a href="{% url 'cobros:reporte_cartera' %}" class="drawer-subitem"><i class="fas fa-chart-line"></i> Reporte de Cartera</a>
+                {% endif %}
+                
+                {% if user.is_superuser %}
+                    <a href="{% url 'clientes:empresa_config' %}" class="drawer-subitem"><i class="fas fa-building"></i> Config. Empresa</a>
+                    <a href="/admin/" class="drawer-subitem"><i class="fas fa-cogs"></i> Admin Django</a>
+                {% endif %}
+                
+                <form action="{% url 'logout' %}" method="post" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="drawer-subitem w-100 text-start text-danger" style="background:none; border:none; padding-left: 20px;">
+                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
