@@ -5,9 +5,26 @@ from documentos.models import Documento
 import datetime
 from django.utils import timezone
 from django.db import models  # ✅ ¡Este es el que falta!
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import get_user_model
 
 def localtime_peru():
     return timezone.localtime(timezone.now())
+
+class CaseInsensitiveAuthenticationForm(AuthenticationForm):
+    def clean(self):
+        username = self.cleaned_data.get('username')
+        password = self.cleaned_data.get('password')
+
+        if username and password:
+            User = get_user_model()
+            # Try to find user case-insensitively
+            user_obj = User.objects.filter(username__iexact=username).first()
+            if user_obj:
+                # Use the correct casing for authentication
+                self.cleaned_data['username'] = user_obj.username
+        
+        return super().clean()
 
 class CobroForm(forms.ModelForm):
     class Meta:

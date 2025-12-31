@@ -15,6 +15,9 @@ def login_view(request):
         extra_context={'config': config}
     )(request)
 
+
+from cobros.forms import CaseInsensitiveAuthenticationForm  # ✅ Importar formulario personalizado
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('clientes/', include('clientes.urls')),
@@ -27,7 +30,10 @@ urlpatterns = [
     
    
 
-    path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
+    path('login/', auth_views.LoginView.as_view(
+        template_name='registration/login.html',
+        authentication_form=CaseInsensitiveAuthenticationForm  # ✅ Usar formulario insensitive
+    ), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),  # ✅ Redirige al inicio
 
 
