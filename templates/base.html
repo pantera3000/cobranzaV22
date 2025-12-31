@@ -180,6 +180,32 @@
             text-align: center;
         }
 
+        /* Etiqueta de grupo para móvil */
+        .fab-group-label-mobile {
+            text-align: right;
+            color: #6c757d;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-bottom: 2px;
+            margin-top: 8px;
+            text-transform: uppercase;
+            padding-right: 10px;
+            text-shadow: 0 0 2px rgba(255,255,255,0.8);
+        }
+        
+        .fab-actions.active .fab-group-label-mobile {
+            opacity: 1;
+        } 
+        .fab-group-label-mobile {
+            opacity: 0; 
+            transition: opacity 0.3s;
+        }
+
+        .fab-action i.text-success { color: #198754; }
+        .fab-action i.text-info { color: #0dcaf0; }
+        .fab-action i.text-warning { color: #ffc107; }
+        .fab-action i.text-danger { color: #dc3545; }
+
         /* ============================================
            MOBILE: Bottom Navigation Bar
            ============================================ */
@@ -1025,27 +1051,54 @@
      ============================================ -->
 {% if user.is_authenticated %}
 <div class="fab-container d-md-none">
-    <div class="fab-actions" id="fabActions">
-        <a href="{% url 'cobros:cobro_create' %}" class="fab-action">
-            <i class="fas fa-money-bill-wave"></i>
-            <span>Registrar Pago</span>
+    <div class="fab-actions" id="fabActions" style="align-items: flex-end;"> <!-- Alineado a la derecha -->
+        
+        <!-- GRUPO 3: GESTIÓN (Arriba visualmente / Primero en HTML para flex column bottom anchored? No, Bottom anchored means last element is at bottom. So this is TOP) -->
+        {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA,CHRISTIAN' %}
+        <div class="fab-group-label-mobile">Gestión</div>
+        <a href="{% url 'cobros:cerrar_planilla_del_dia' %}" class="fab-action">
+            <i class="fas fa-flag-checkered text-warning"></i>
+            <span>Cerrar Planilla</span>
         </a>
-        <a href="{% url 'documentos:documento_create' %}" class="fab-action">
-            <i class="fas fa-file-invoice"></i>
-            <span>Nuevo Documento</span>
+        {% endif %}
+
+        <!-- GRUPO 2: CONSULTAS -->
+        <div class="fab-group-label-mobile">Consultas</div>
+        <!-- Validar permisos para opciones extra -->
+        {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA,CHRISTIAN' %}
+        <a href="{% url 'cobros:admin_reporte_planillas' %}" class="fab-action">
+            <i class="fas fa-table"></i>
+            <span>Reporte Planillas</span>
+        </a>
+        <a href="{% url 'cobradores:cobrador_list' %}" class="fab-action">
+            <i class="fas fa-user-shield"></i>
+            <span>Listar Cobradores</span>
+        </a>
+        {% endif %}
+        <a href="{% url 'documentos:reporte_documentos_pendientes' %}" class="fab-action">
+            <i class="fas fa-clipboard-list"></i>
+            <span>Ver Pendientes</span>
         </a>
         <a href="{% url 'clientes:cliente_list' %}" class="fab-action">
             <i class="fas fa-search"></i>
             <span>Buscar Cliente</span>
         </a>
-        <a href="{% url 'documentos:reporte_documentos_pendientes' %}" class="fab-action">
-            <i class="fas fa-exclamation-triangle"></i>
-            <span>Docs Pendientes</span>
+
+        <!-- GRUPO 1: OPERACIONES (Abajo visualmente / Último en HTML) -->
+        <div class="fab-group-label-mobile">Operaciones</div>
+        <a href="{% url 'clientes:cliente_create' %}" class="fab-action">
+            <i class="fas fa-user-plus"></i>
+            <span>Nuevo Cliente</span>
         </a>
-        <a href="{% url 'cobros:cerrar_planilla_del_dia' %}" class="fab-action">
-            <i class="fas fa-clipboard-check"></i>
-            <span>Cerrar Planilla</span>
+        <a href="{% url 'documentos:documento_create' %}" class="fab-action">
+            <i class="fas fa-file-invoice"></i>
+            <span>Nuevo Documento</span>
         </a>
+        <a href="{% url 'cobros:cobro_create' %}" class="fab-action">
+            <i class="fas fa-money-bill-wave text-success"></i>
+            <span>Registrar Pago</span>
+        </a>
+
     </div>
     <button class="fab-main" id="fabMain">
         <i class="fas fa-plus"></i>
@@ -1191,7 +1244,7 @@
 <!-- ============================================
      DESKTOP: Quick Actions Panel
      ============================================ -->
-<div class="quick-actions">
+<!-- <div class="quick-actions">
     <a href="{% url 'cobros:cobro_create' %}" class="quick-action" title="Registrar Pago">
         <i class="fas fa-money-bill-wave"></i>
         <span class="tooltip-text">Registrar Pago</span>
@@ -1208,7 +1261,7 @@
         <i class="fas fa-clipboard-check"></i>
         <span class="tooltip-text">Cerrar Planilla</span>
     </a>
-</div>
+</div> -->
 
 <!-- JavaScript para interactividad -->
 <script>
