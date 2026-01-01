@@ -719,6 +719,31 @@
                                     </ul>
                                 </li>
 
+                                <!-- Menú: Cobradores (solo para staff, admin, encargados) -->
+                                {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA,CHRISTIAN' %}
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                            <i class="fas fa-user-shield"></i> Cobradores
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="{% url 'cobradores:cobrador_list' %}"><i class="fas fa-list"></i> Listar Cobradores</a></li>
+                                            <li><a class="dropdown-item" href="{% url 'cobradores:cobrador_create' %}"><i class="fas fa-plus"></i> Nuevo Cobrador</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item" href="{% url 'reportes:cobradores' %}"><i class="fas fa-chart-bar"></i> Reporte por Cobrador</a></li>
+                                            <li><a class="dropdown-item" href="{% url 'cobradores:cobrador_export_excel' %}"><i class="fas fa-file-excel text-success"></i> Exportar a Excel</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a href="{% url 'cobros:mis_cierres' %}" class="dropdown-item"><i class="fas fa-clipboard-list"></i> Mis Cierres</a></li>
+                                            {% if user.is_superuser or user.username in 'juanc,VALERIA,adminaqp,CHRISTIAN' %}
+                                                <li><a href="{% url 'cobros:cerrar_planilla_del_dia' %}" class="dropdown-item"><i class="fas fa-flag-checkered"></i> Crear/Cerrar Planilla</a></li>
+                                                <li><a href="{% url 'cobros:admin_reporte_planillas' %}" class="dropdown-item"><i class="fas fa-table"></i> Reporte de Planillas</a></li>
+                                                <li><a class="dropdown-item" href="{% url 'cobros:cerrar_planilla_fecha_especifica' %}">
+                                                    <i class="fas fa-calendar-check"></i> Cierre de Fecha Específica
+                                                </a></li>
+                                            {% endif %}
+                                        </ul>
+                                    </li>
+                                {% endif %}
+
 
                                 <!-- ✅ NUEVO FAB AGRUPADO (Reemplazo de Botones Flotantes) -->
                                 <!-- Este contenedor estará fijo en la esquina inferior derecha -->
@@ -1298,7 +1323,30 @@
         </div>
         {% endif %}
 
-        <!-- 6. Reparto (Conditional) -->
+        <!-- 6. Cobradores (Conditional) -->
+        {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALERIA,CHRISTIAN' %}
+        <div class="drawer-accordion-item">
+            <div class="drawer-accordion-header" onclick="toggleDrawerAccordion(this)">
+                <i class="fas fa-user-shield menu-icon"></i>
+                <span>Cobradores</span>
+                <i class="fas fa-chevron-down chevron"></i>
+            </div>
+            <div class="drawer-accordion-body">
+                <a href="{% url 'cobradores:cobrador_list' %}" class="drawer-subitem"><i class="fas fa-list"></i> Listar Cobradores</a>
+                <a href="{% url 'cobradores:cobrador_create' %}" class="drawer-subitem"><i class="fas fa-plus"></i> Nuevo Cobrador</a>
+                <a href="{% url 'reportes:cobradores' %}" class="drawer-subitem"><i class="fas fa-chart-bar"></i> Reporte por Cobrador</a>
+                <a href="{% url 'cobradores:cobrador_export_excel' %}" class="drawer-subitem"><i class="fas fa-file-excel text-success"></i> Exportar a Excel</a>
+                <a href="{% url 'cobros:mis_cierres' %}" class="drawer-subitem"><i class="fas fa-clipboard-list"></i> Mis Cierres</a>
+                {% if user.is_superuser or user.username in 'juanc,VALERIA,adminaqp,CHRISTIAN' %}
+                    <a href="{% url 'cobros:cerrar_planilla_del_dia' %}" class="drawer-subitem"><i class="fas fa-flag-checkered"></i> Crear/Cerrar Planilla</a>
+                    <a href="{% url 'cobros:admin_reporte_planillas' %}" class="drawer-subitem"><i class="fas fa-table"></i> Reporte de Planillas</a>
+                    <a href="{% url 'cobros:cerrar_planilla_fecha_especifica' %}" class="drawer-subitem"><i class="fas fa-calendar-check"></i> Cierre Fecha Específica</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 7. Reparto (Conditional) -->
         {% if user.is_staff or user.is_superuser or user.username in 'juanc,adminaqp,VALEeeeRIA,CHRISTIAN' %}
         <div class="drawer-accordion-item">
             <div class="drawer-accordion-header" onclick="toggleDrawerAccordion(this)">
