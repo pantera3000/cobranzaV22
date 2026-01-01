@@ -103,6 +103,11 @@
         <button class="btn btn-outline-secondary" type="submit">
             <i class="fas fa-search"></i>
         </button>
+        {% if query %}
+            <a href="{% url 'clientes:cliente_list' %}" class="btn btn-secondary" title="Limpiar búsqueda">
+                <i class="fas fa-times"></i>
+            </a>
+        {% endif %}
     </div>
 </form>
 
