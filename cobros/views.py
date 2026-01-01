@@ -196,10 +196,14 @@ def historial_metas(request):
         if meta.monto_objetivo > 0:
             porcentaje = min((cobros_mes / meta.monto_objetivo) * 100, 100)
 
+        # Determinar si la meta fue cumplida
+        cumplida = cobros_mes >= meta.monto_objetivo
+
         data_metas.append({
             'meta': meta,
-            'cobrado': cobros_mes,
-            'porcentaje': porcentaje
+            'monto_alcanzado': cobros_mes,  # Renombrado para coincidir con template
+            'porcentaje': porcentaje,
+            'cumplida': cumplida  # Agregado para mostrar estado correcto
         })
 
     return render(request, 'cobros/historial_metas.html', {
