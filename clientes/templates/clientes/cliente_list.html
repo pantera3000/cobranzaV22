@@ -3,18 +3,18 @@
 {% block title %}Listado de Clientes{% endblock %}
 
 {% block content %}
+<!-- Header: Título + Botones -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-users"></i> Clientes</h2>
-    <div>
-
-        <button type="button" class="btn btn-outline-secondary me-2" onclick="window.history.back();">
+    
+    <!-- Botones Desktop (sin cambios) -->
+    <div class="d-none d-md-flex gap-2">
+        <button type="button" class="btn btn-outline-secondary" onclick="window.history.back();">
             <i class="fas fa-arrow-left"></i> Volver
         </button>
-
-        <a href="{% url 'clientes:cliente_create' %}" class="btn btn-success me-2">
+        <a href="{% url 'clientes:cliente_create' %}" class="btn btn-success">
             <i class="fas fa-plus"></i> Nuevo Cliente
         </a>
-        <!-- ✅ Botón: Carga Masiva con Excel -->
         <div class="btn-group">
             <button type="button" class="btn btn-info dropdown-toggle" data-bs-toggle="dropdown">
                 <i class="fas fa-file-excel"></i> Carga Masiva
@@ -32,8 +32,6 @@
                 </li>
             </ul>
         </div>
-
-
         <div class="btn-group">
             <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
                 <i class="fas fa-download"></i> Exportar
@@ -46,6 +44,54 @@
                     <i class="fas fa-file-csv text-primary"></i> Exportar a CSV
                 </a></li>
             </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Botones Móvil (2 filas compactas) -->
+<div class="d-md-none mb-3">
+    <div class="d-grid gap-2">
+        <!-- Fila 1 -->
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm flex-fill" onclick="window.history.back();">
+                <i class="fas fa-arrow-left"></i> Volver
+            </button>
+            <a href="{% url 'clientes:cliente_create' %}" class="btn btn-success btn-sm flex-fill">
+                <i class="fas fa-plus"></i> Nuevo
+            </a>
+        </div>
+        <!-- Fila 2 -->
+        <div class="d-flex gap-2">
+            <div class="btn-group flex-fill">
+                <button type="button" class="btn btn-info btn-sm dropdown-toggle w-100" data-bs-toggle="dropdown">
+                    <i class="fas fa-file-excel"></i> Carga Masiva
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{% url 'clientes:descargar_plantilla_excel' %}">
+                            <i class="fas fa-download text-primary"></i> Plantilla
+                        </a>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#modalSubirClientesExcel">
+                            <i class="fas fa-upload text-success"></i> Subir
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="btn-group flex-fill">
+                <button type="button" class="btn btn-primary btn-sm dropdown-toggle w-100" data-bs-toggle="dropdown">
+                    <i class="fas fa-download"></i> Exportar
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'clientes:cliente_export_excel' %}">
+                        <i class="fas fa-file-excel text-success"></i> Excel
+                    </a></li>
+                    <li><a class="dropdown-item" href="{% url 'clientes:cliente_export_csv' %}">
+                        <i class="fas fa-file-csv text-primary"></i> CSV
+                    </a></li>
+                </ul>
+            </div>
         </div>
     </div>
 </div>
