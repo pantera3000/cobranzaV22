@@ -5,53 +5,71 @@
 {% block title %}Detalle de {{ cobrador.nombre }}{% endblock %}
 
 {% block content %}
+<!-- Header: Título + Botones -->
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-user-shield"></i> Detalle del Cobrador: {{ cobrador.nombre }}</h2>
-    <a href="{% url 'reportes:cobradores' %}" class="btn btn-secondary">
-        <i class="fas fa-arrow-left"></i> Volver a reporte cobradores
-    </a>
-    <button type="button" class="btn btn-outline-secondary me-2" onclick="window.history.back();">
-        <i class="fas fa-arrow-left"></i> Volver Atras
-    </button>
-
-
-
+    <h2><i class="fas fa-user-shield"></i> <span class="d-none d-md-inline">Detalle del Cobrador:</span> {{ cobrador.nombre }}</h2>
+    
+    <!-- Botones Desktop -->
+    <div class="d-none d-md-flex gap-2">
+        <a href="{% url 'reportes:cobradores' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver a reporte cobradores
+        </a>
+        <button type="button" class="btn btn-outline-secondary" onclick="window.history.back();">
+            <i class="fas fa-arrow-left"></i> Volver Atrás
+        </button>
+    </div>
 </div>
+
+<!-- Botones Móvil -->
+<div class="d-md-none mb-3">
+    <div class="d-flex gap-2">
+        <a href="{% url 'reportes:cobradores' %}" class="btn btn-secondary btn-sm flex-fill">
+            <i class="fas fa-arrow-left"></i> Reporte
+        </a>
+        <button type="button" class="btn btn-outline-secondary btn-sm flex-fill" onclick="window.history.back();">
+            <i class="fas fa-arrow-left"></i> Atrás
+        </button>
+    </div>
+</div>
+
 
 <!-- Filtro Global -->
 <div class="card mb-4">
     <div class="card-body p-3">
         <h6 class="mb-3"><i class="fas fa-filter"></i> Filtro por Fecha</h6>
-        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
-            <div class="btn-group btn-group-sm" role="group">
-                <a href="?filtro=hoy"
-                   class="btn btn-outline-info {% if filtro_rapido == 'hoy' %}active{% endif %}">
-                    Hoy
-                </a>
-                <a href="?filtro=ayer"
-                   class="btn btn-outline-info {% if filtro_rapido == 'ayer' %}active{% endif %}">
-                    Ayer
-                </a>
-                <a href="?filtro=mes"
-                   class="btn btn-outline-primary {% if filtro_rapido == 'mes' %}active{% endif %}">
-                    Este mes
-                </a>
-                <a href="?filtro=mes_pasado"
-                   class="btn btn-outline-warning {% if filtro_rapido == 'mes_pasado' %}active{% endif %}">
-                    Mes pasado
-                </a>
-                <a href="?filtro=3meses"
-                   class="btn btn-outline-success {% if filtro_rapido == '3meses' %}active{% endif %}">
-                    Últimos 3 meses
-                </a>
-                <a href="?filtro=año"
-                   class="btn btn-outline-danger {% if filtro_rapido == 'año' %}active{% endif %}">
-                    Este año
-                </a>
-                <a href="?filtro=año_pasado"
-                   class="btn btn-outline-secondary {% if filtro_rapido == 'año_pasado' %}active{% endif %}">
-                    Año pasado
-                </a>
+        <div class="d-flex flex-column flex-md-row flex-wrap gap-2 justify-content-between align-items-start align-items-md-center">
+            <!-- Atajos de fecha con scroll horizontal en móvil -->
+            <div class="overflow-auto w-100 w-md-auto pb-2" style="white-space: nowrap;">
+                <div class="btn-group btn-group-sm" role="group">
+                    <a href="?filtro=hoy"
+                       class="btn btn-outline-info {% if filtro_rapido == 'hoy' %}active{% endif %}">
+                        Hoy
+                    </a>
+                    <a href="?filtro=ayer"
+                       class="btn btn-outline-info {% if filtro_rapido == 'ayer' %}active{% endif %}">
+                        Ayer
+                    </a>
+                    <a href="?filtro=mes"
+                       class="btn btn-outline-primary {% if filtro_rapido == 'mes' %}active{% endif %}">
+                        Este mes
+                    </a>
+                    <a href="?filtro=mes_pasado"
+                       class="btn btn-outline-warning {% if filtro_rapido == 'mes_pasado' %}active{% endif %}">
+                        Mes pasado
+                    </a>
+                    <a href="?filtro=3meses"
+                       class="btn btn-outline-success {% if filtro_rapido == '3meses' %}active{% endif %}">
+                        Últimos 3 meses
+                    </a>
+                    <a href="?filtro=año"
+                       class="btn btn-outline-danger {% if filtro_rapido == 'año' %}active{% endif %}">
+                        Este año
+                    </a>
+                    <a href="?filtro=año_pasado"
+                       class="btn btn-outline-secondary {% if filtro_rapido == 'año_pasado' %}active{% endif %}">
+                        Año pasado
+                    </a>
+                </div>
             </div>
             <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#filtroFecha">
                 <i class="fas fa-calendar"></i> Personalizado
@@ -436,9 +454,8 @@
 
 
 
-                    <!-- Botón Exportar -->
                     <!-- Botones Exportar -->
-                    <div class="d-flex justify-content-end mb-3 gap-2">
+                    <div class="d-flex flex-column flex-md-row justify-content-end mb-3 gap-2">
                         <a href="{% url 'cobradores:exportar_cobros_excel' cobrador.pk %}?{{ request.GET.urlencode }}"
                         class="btn btn-success btn-sm">
                             <i class="fas fa-file-excel"></i> Exportar a Excel
