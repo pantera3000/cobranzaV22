@@ -786,6 +786,18 @@ def registrar_pagos_multiple(request):
             return JsonResponse({'error': 'La referencia es requerida'}, status=400)
 
         notas = data.get('notas', '').strip()
+        fecha_pago_str = data.get('fecha_pago')
+
+        # ✅ Procesar fecha personalizada o usar actual
+        if fecha_pago_str:
+            try:
+                fecha_obj = datetime.strptime(fecha_pago_str, '%Y-%m-%d').date()
+                # Combinar con hora actual para mantener precisión
+                fecha_pago = timezone.now().replace(year=fecha_obj.year, month=fecha_obj.month, day=fecha_obj.day)
+            except ValueError:
+                return JsonResponse({'error': 'Formato de fecha inválido'}, status=400)
+        else:
+            fecha_pago = timezone.now()
 
         total_registrado = 0
         errores = []
@@ -822,12 +834,12 @@ def registrar_pagos_multiple(request):
                     documento=documento,
                     cobrador=cobrador,
                     monto=monto,
-                    fecha=timezone.now(),
+                    fecha=fecha_pago,  # ✅ Usar fecha personalizada
                     referencia=referencia,
                     notas=notas,
                     tipo_pago=tipo_pago,
-                    correlativo=generar_correlativo(),  # ✅ Genera uno por pago
-                    usuario_registro=request.user      # ✅ ¡Este es el cambio clave!
+                    correlativo=generar_correlativo(fecha=fecha_pago),  # ✅ Genera correlativo según año de fecha
+                    usuario_registro=request.user
                 )
                 cobro.save()
                 total_registrado += monto

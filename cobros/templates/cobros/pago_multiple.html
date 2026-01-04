@@ -161,6 +161,18 @@
                 <form id="form-pagos">
                     {% csrf_token %}
                     <!-- Campo para número o referencia del pago múltiple -->
+                    <!-- Campo Fecha de Pago (Nuevo) -->
+                    <div class="mb-3">
+                        <label for="fecha_pago">Fecha de Pago:</label>
+                        <input type="date"
+                            name="fecha_pago"
+                            id="fecha_pago"
+                            class="form-control"
+                            value="{% now 'Y-m-d' %}"
+                            required>
+                        <small class="text-muted">Fecha con la que se registrarán los pagos.</small>
+                    </div>
+
                     <!-- Campo correlativo (automático, no editable) -->
                     <div class="mb-3">
                         <label for="correlativo">Correlativos:</label>
@@ -368,6 +380,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const formData = new FormData();
         formData.append('cobrador', cobrador);
         formData.append('referencia', referenciaInput.value.trim());
+
+        // ✅ Obtener y añadir fecha de pago
+        const fechaPago = document.getElementById('fecha_pago').value;
+        formData.append('fecha_pago', fechaPago);
 
         // ✅ Obtener y añadir notas
         const notasInput = document.getElementById('id_notas');

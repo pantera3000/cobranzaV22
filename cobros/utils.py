@@ -7,9 +7,12 @@ def localtime_peru():
     return timezone.localtime(timezone.now())
 
 @transaction.atomic
-def generar_correlativo():
-    hoy = localtime_peru().date()
-    año = hoy.year
+def generar_correlativo(fecha=None):
+    if fecha:
+        año = fecha.year
+    else:
+        hoy = localtime_peru().date()
+        año = hoy.year
 
     secuencia, created = SecuenciaCorrelativo.objects.select_for_update().get_or_create(
         nombre='cobro',
