@@ -39,7 +39,7 @@ class SecuenciaCorrelativo(models.Model):
     """
     nombre = models.CharField(
         max_length=50,
-        unique=True,
+        # unique=True,  <-- REMOVIDO: Esto impedía tener 'cobro' para 2025 y 2026
         help_text="Nombre único de la secuencia (ej: 'cobro')"
     )
     ultimo_correlativo = models.IntegerField(
