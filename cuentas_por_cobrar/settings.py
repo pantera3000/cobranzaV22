@@ -50,6 +50,7 @@ INSTALLED_APPS = [
 
     'crispy_forms',  # 👈 Para Bootstrap en formularios
     'crispy_bootstrap5',
+    'django.contrib.humanize',  # ✅ Para flitros como naturaltime
 ]
 
 MIDDLEWARE = [

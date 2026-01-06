@@ -405,7 +405,7 @@ def cobro_create(request):
                     cobrador=cobro.cobrador,
                     categoria='cobro',
                     accion='Registró pago',
-                    descripcion=f"Monto: S/ {cobro.monto:,.2f}, Documento: {documento}, Cliente: {documento.cliente.nombre}, Referencia: {cobro.referencia or '-'}"
+                    descripcion=f"Monto: S/ {cobro.monto:,.2f}, Correlativo: {cobro.correlativo}, Documento: {documento}, Cliente: {documento.cliente.nombre}, Referencia: {cobro.referencia or '-'}"
                 )
 
                 messages.success(
@@ -858,7 +858,7 @@ def registrar_pagos_multiple(request):
                     cobrador=cobrador,
                     categoria='cobro',
                     accion='Registró pago múltiple',
-                    descripcion=f"Referencia: {referencia}, Total: S/ {total_registrado:.2f}, {len(pago_keys)} documentos, Notas: {notas or '-'}"
+                    descripcion=f"Referencia: {referencia}, Total: S/ {total_registrado:.2f}, {len(pago_keys)} documentos, Notas: {notas or '-'}, Rango Correlativos: {generar_correlativo(fecha=fecha_pago)[:-5]}..."
                 )
             except Exception as log_error:
                 print(f"❌ Error al registrar log: {log_error}")

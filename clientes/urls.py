@@ -16,6 +16,7 @@ urlpatterns = [
     path('config/', views.empresa_config, name='empresa_config'),
 
     path('log/limpiar/', views.limpiar_log, name='limpiar_log'),
+    path('log/exportar-excel/', views.log_export_excel, name='log_export_excel'),
 
 
     path('descargar-plantilla-clientes/', views.descargar_plantilla_clientes_excel, name='descargar_plantilla_excel'),

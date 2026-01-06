@@ -186,25 +186,121 @@ def empresa_config(request):
 
 @permission_required('clientes.view_logactividad', raise_exception=True)
 def log_actividad(request):
-    # Obtener logs de los últimos 30 días (ajusta según necesidad)
-    fecha_inicio = timezone.now() - timedelta(days=30)
-    logs = LogActividad.objects.filter(fecha__gte=fecha_inicio).select_related('usuario', 'cobrador').order_by('-fecha')
+    # === 1. Obtener filtros ===
+    query = request.GET.get('q', '').strip()
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
+    categoria = request.GET.get('categoria', '')
 
-    # Filtro por categoría
-    categoria = request.GET.get('categoria')
+    logs = LogActividad.objects.select_related('usuario', 'cobrador').order_by('-fecha')
+
+    # === 2. Aplicar Filtros ===
+
+    # Búsqueda general
+    if query:
+        logs = logs.filter(
+            Q(usuario__username__icontains=query) |
+            Q(descripcion__icontains=query) |
+            Q(accion__icontains=query) |
+            Q(cobrador__nombre__icontains=query)
+        )
+
+    # Filtro por Categoría
     if categoria:
         logs = logs.filter(categoria=categoria)
 
-    # Paginación
-    paginator = Paginator(logs, 25)  # 25 por página
+    # Filtro por Fecha
+    if fecha_desde:
+        logs = logs.filter(fecha__date__gte=fecha_desde)
+    
+    if fecha_hasta:
+        logs = logs.filter(fecha__date__lte=fecha_hasta)
+
+    # ⚠️ Si NO hay filtro de fecha, mostramos solo los últimos 30 días para evitar carga masiva
+    if not fecha_desde and not fecha_hasta and not query:
+        fecha_inicio_default = timezone.now() - timedelta(days=30)
+        logs = logs.filter(fecha__gte=fecha_inicio_default)
+
+    # === 3. Paginación ===
+    paginator = Paginator(logs, 50)  # Aumenté a 50 por página para timeline
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request, 'clientes/log_actividad.html', {
+    context = {
         'page_obj': page_obj,
         'categoria': categoria,
         'categorias': LogActividad.CATEGORIA_OPCIONES,
-    })
+        'query': query,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+    }
+    return render(request, 'clientes/log_actividad.html', context)
+
+
+@permission_required('clientes.view_logactividad', raise_exception=True)
+def log_export_excel(request):
+    """Exporta el log de actividades filtrado a Excel"""
+    # === 1. Obtener filtros (Misma lógica) ===
+    query = request.GET.get('q', '').strip()
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
+    categoria = request.GET.get('categoria', '')
+
+    logs = LogActividad.objects.select_related('usuario', 'cobrador').order_by('-fecha')
+
+    if query:
+        logs = logs.filter(
+            Q(usuario__username__icontains=query) |
+            Q(descripcion__icontains=query) |
+            Q(accion__icontains=query) |
+            Q(cobrador__nombre__icontains=query)
+        )
+    if categoria:
+        logs = logs.filter(categoria=categoria)
+    if fecha_desde:
+        logs = logs.filter(fecha__date__gte=fecha_desde)
+    if fecha_hasta:
+        logs = logs.filter(fecha__date__lte=fecha_hasta)
+    
+    # Nota: En exportación NO limitamos a 30 días si no hay filtro, 
+    # pero podríamos poner un límite de registros (ej: 5000) si fuera necesario.
+    # Por ahora exportamos todo lo que coincida.
+
+    # === 2. Generar Excel ===
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Auditoría"
+
+    # Encabezados
+    headers = ["Fecha", "Hora", "Usuario / Cobrador", "Acción", "Categoría", "Descripción"]
+    ws.append(headers)
+    
+    # Estilo negrita para cabecera
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+
+    for log in logs:
+        # Determinar quién realizó la acción
+        responsable = log.usuario.username if log.usuario else (log.cobrador.nombre if log.cobrador else "Sistema")
+        
+        # Fecha local (ajustar si es necesario, pero django suele manejarlo)
+        fecha_local = timezone.localtime(log.fecha)
+
+        ws.append([
+            fecha_local.strftime('%d/%m/%Y'),
+            fecha_local.strftime('%H:%M:%S'),
+            responsable,
+            log.accion,
+            log.get_categoria_display(),
+            log.descripcion
+        ])
+
+    # === 3. Respuesta HTTP ===
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"auditoria_{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
 
 
 def cliente_list(request):
